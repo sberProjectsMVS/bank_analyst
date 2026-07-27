@@ -668,8 +668,21 @@ _OZONBANK_SHARED = {
 
 # ---------- Газпромбанк ----------
 _GPB_BONUS = "https://www.gazprombank.ru/premium/gazprom-bonus/"
-_GPB_PREMIUM = "https://www.gazprombank.ru/premium/"
+_GPB_PREMIUM = "https://www.gazprombank.ru/premium/special/pu-premium/"
+_GPB_PREMIUM_TARIFF = (
+    "https://www.gazprombank.ru/upload/files/iblock/e97/"
+    "h038o8uoge7g8zucvs80yz2sy8r9gejz/"
+    "Tarif-Gazprombank.Premium-s-22.07.2026.pdf"
+)
+_GPB_PREMIUM_CASHBACK = (
+    "https://www.gazprombank.ru/upload/files/iblock/474/"
+    "102zjqtow8yzfiixl6bvikr0khvb3g51/"
+    "Programma-loyalnosti-Banka-GPB-_AO_-po-nachisleniyu-keshbeka-"
+    "_deystvuet-s-01.06.2026_.pdf"
+)
 _GPB_PRIVATE = "https://www.gazprombank.ru/private/"
+_GPB_PRIVATE_PACKAGE = "https://www.gazprombank.ru/private/package-of-services/"
+_GPB_PRIVATE_TRANSFERS = "https://www.gazprombank.ru/download/8091775/"
 _GPB_PRIVATE_DEPOSITS_PAGE = "https://www.gazprombank.ru/private/deposits/"
 
 _GPB_PREMIUM_1_ENTRY = _fact(
@@ -694,27 +707,70 @@ _GPB_PREMIUM_DEPOSITS = _fact(
     "Официальная страница премиальной карты Газпромбанка")
 
 _GPB_PREMIUM_TRANSFERS = _fact(
-    "Переводы по номеру телефона бесплатно до 200 000 ₽; переводы по номеру "
-    "карты бесплатно до 50 000 ₽",
+    "Переводы другим людям в любые банки РФ через СБП бесплатно до "
+    "200 000 ₽ в месяц; переводы по номеру карты бесплатно до 50 000 ₽ "
+    "в месяц. Общий технический лимит переводов через СБП или по номеру "
+    "карты — до 10 млн ₽ в месяц",
     _GPB_PREMIUM,
-    "Официальный блок «Короткие тарифы» премиальной карты Газпромбанка")
+    "Официальная страница премиальной карты Газпромбанка; бесплатные лимиты "
+    "и общий операционный лимит показаны раздельно",
+    date_checked="2026-07-24")
 
 _GPB_PREMIUM_CASH = _fact(
-    "Снятие наличных бесплатно при выполнении условий тарифа",
-    _GPB_PREMIUM,
-    "Официальный блок «Короткие тарифы» премиальной карты Газпромбанка")
+    "При выполнении условий пакета снятие наличных без комиссии в банкоматах "
+    "и пунктах выдачи наличных Газпромбанка и сторонних банков в России и "
+    "за рубежом. Без выполнения условий: в Газпромбанке до 1 000 000 ₽ в "
+    "месяц бесплатно; в сторонних банках России до 100 000 ₽ в месяц "
+    "бесплатно; за рубежом — 450 ₽ за операцию",
+    _GPB_PREMIUM_TARIFF,
+    "Официальный тариф пакета с 22.07.2026, раздел III, пункты 4.1–4.4",
+    date_checked="2026-07-24")
 
 _GPB_PREMIUM_SUPREME = _fact(
     "Премиальная карта Газпромбанка на платёжной системе МИР Supreme; "
     "можно оформить до 4 дополнительных карт Mir Supreme бесплатно",
-    _GPB_PREMIUM,
-    "Официальная страница премиальной карты Газпромбанка")
+    _GPB_PREMIUM_TARIFF,
+    "Официальный тариф пакета с 22.07.2026, разделы I и III",
+    date_checked="2026-07-24")
+
+_GPB_PREMIUM_CASHBACK_FACT = _fact(
+    "Кэшбэк по программе Газпромбанка: до 6% в топ-категориях; с сервисом "
+    "Газпром Бонус «Премиум» лимит до 40 000 бонусных баллов в месяц, "
+    "1 бонусный балл = 1 ₽",
+    _GPB_PREMIUM_CASHBACK,
+    "Официальная программа лояльности с 01.06.2026 по 31.07.2026; таблица "
+    "ставок и лимита для сервиса Газпром Бонус «Премиум»",
+    date_checked="2026-07-24")
 
 _GPB_PRIVATE_DEPOSITS = _fact(
     "Вклады Private: фиксированная ставка до 13,65% годовых; плавающая "
     "ставка до 16,85% годовых; накопительные счета до 13,30% годовых",
     _GPB_PRIVATE_DEPOSITS_PAGE,
     "Официальная страница вкладов и накопительных счетов Газпромбанк Private",
+    date_checked="2026-07-24")
+
+_GPB_PRIVATE_CASHBACK = _fact(
+    "Кэшбэк в рублях: до 15% в основной категории; до 20% на здоровье или "
+    "путешествия",
+    _GPB_PRIVATE_PACKAGE,
+    "Официальная страница пакета услуг Газпромбанк Private",
+    date_checked="2026-07-24")
+
+_GPB_PRIVATE_TRANSFERS_FACT = _fact(
+    "Переводы со счёта внутри Газпромбанка — без комиссии; перевод со счёта "
+    "физическому лицу в другой банк в пределах РФ и стран СНГ — 2% от суммы "
+    "(минимум 200 ₽, максимум 1 500 ₽)",
+    _GPB_PRIVATE_TRANSFERS,
+    "Официальные тарифы переводов для клиентов сегментов «ВИП» и "
+    "«Частно-банковский бизнес» с 01.06.2026",
+    date_checked="2026-07-24")
+
+_GPB_PRIVATE_PRIME = _fact(
+    "Премиальная карта PRIME для клиентов Private; доступны пластиковая и "
+    "моментальная карты, платёжный стикер и кольцо. По карте PRIME заявлены "
+    "скидки до 30% в отелях и ресторанах",
+    _GPB_PRIVATE_PACKAGE,
+    "Официальная страница пакета услуг Газпромбанк Private",
     date_checked="2026-07-24")
 
 # ---------- Альфа-Банк ----------
@@ -739,6 +795,10 @@ _PBI_ACLUB = "https://premiumbanking.info/alfabank/5"
 _ALFA_ONLY_CARD_TARIFFS = (
     "https://alfabank.servicecdn.ru/site-upload/c1/65/275/"
     "Tariffs_Alfa_Only_Card.pdf"
+)
+_ALFA_CASH_LIMITS_OFFICIAL = (
+    "https://alfabank.ru/help/articles/debit-cards/"
+    "kak-snimat-dengi-s-karty-v-bankomate/"
 )
 
 _ALFA_CONCIERGE_FACT = _fact(
@@ -787,9 +847,15 @@ _ALFA_ONLY_TRANSFERS = _fact(
     "Официальный тарифный PDF по карте Alfa Only, раздел 6")
 
 _ALFA_ONLY_CASH_WITHDRAWAL = _fact(
-    "Снятие наличных в банкоматах других банков по миру — бесплатно",
-    _ALFA_ONLY_CARD_TARIFFS,
-    "Официальный тарифный PDF по карте Alfa Only, пункт 3")
+    "Премиальные карты Alfa Only: снятие наличных — до 1,5 млн ₽ в сутки "
+    "и до 3 млн ₽ в месяц; в банкоматах других банков по миру — бесплатно",
+    f"{_ALFA_CASH_LIMITS_OFFICIAL}; {_ALFA_ONLY_CARD_TARIFFS}",
+    "Числовые лимиты подтверждены официальной справочной статьёй "
+    "Альфа-Банка; бесплатное снятие в сторонних банкоматах — официальным "
+    "тарифным PDF Alfa Only, пункт 3. Фактический клиентский лимит общий "
+    "для карт и счетов и может быть изменён банком; актуальное значение "
+    "показывается в приложении",
+    date_checked="2026-07-27")
 
 _ALFA_ONLY_SUPREME = _fact(
     "Дебетовая Альфа-Карта МИР Supreme доступна клиентам Alfa Only",
@@ -987,6 +1053,7 @@ _COMPETITOR_FACTS = {
     "gpb_premium_1": {
         "entry_conditions": _GPB_PREMIUM_1_ENTRY,
         "deposits": _GPB_PREMIUM_DEPOSITS,
+        "cashback": _GPB_PREMIUM_CASHBACK_FACT,
         "transfers_payments": _GPB_PREMIUM_TRANSFERS,
         "cash_withdrawal": _GPB_PREMIUM_CASH,
         "supreme": _GPB_PREMIUM_SUPREME,
@@ -994,6 +1061,7 @@ _COMPETITOR_FACTS = {
     "gpb_premium_2": {
         "entry_conditions": _GPB_PREMIUM_2_ENTRY,
         "deposits": _GPB_PREMIUM_DEPOSITS,
+        "cashback": _GPB_PREMIUM_CASHBACK_FACT,
         "transfers_payments": _GPB_PREMIUM_TRANSFERS,
         "cash_withdrawal": _GPB_PREMIUM_CASH,
         "supreme": _GPB_PREMIUM_SUPREME,
@@ -1002,6 +1070,7 @@ _COMPETITOR_FACTS = {
     },
     "gpb_premium_3": {
         "deposits": _GPB_PREMIUM_DEPOSITS,
+        "cashback": _GPB_PREMIUM_CASHBACK_FACT,
         "transfers_payments": _GPB_PREMIUM_TRANSFERS,
         "cash_withdrawal": _GPB_PREMIUM_CASH,
         "supreme": _GPB_PREMIUM_SUPREME,
@@ -1013,13 +1082,9 @@ _COMPETITOR_FACTS = {
         "service_cost": _free_on_conditions(
             "https://premiumbanking.info/gazprombank/4"),
         "deposits": _GPB_PRIVATE_DEPOSITS,
-        "cashback": _fact(
-            "Программа лояльности «Умный кэшбэк» (Газпром Бонус «Премиум»): "
-            "до 15% + до 7% от ПС «Мир» в ресторанах, суммарно до 22%, "
-            "лимит 40 000 ₽/мес",
-            _GPB_BONUS,
-            "Детализация именно для уровня Private не публикуется — "
-            "указана премиальная версия программы банка"),
+        "cashback": _GPB_PRIVATE_CASHBACK,
+        "transfers_payments": _GPB_PRIVATE_TRANSFERS_FACT,
+        "supreme": _GPB_PRIVATE_PRIME,
     },
     # ----- Альфа-Банк -----
     "alfa_only_1": {"entry_conditions": _ALFA_ONLY_1_ENTRY,

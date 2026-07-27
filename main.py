@@ -7,7 +7,8 @@ competitor-scanner — конкурентный анализ премиальн�
     python main.py --scan-bank tbank        # точечный скан одного банка
     python main.py --scan-lifestyle         # только экосистемные подписки
     python main.py --build-sber-vs          # HTML-лендинг Сбер VS банки
-    python main.py --build-premium-changes  # HTML-лендинг изменений с premiumbanking.info
+    python main.py --sync-premium-news      # проверить и загрузить новости из Google Sheets
+    python main.py --build-premium-changes  # HTML-лендинг изменений из PBI и Google Sheets
     python main.py --build-premium-reviews  # HTML-отчёт отзывов о премиуме Сбера
     python main.py --list-sources           # показать все источники
 """
@@ -370,6 +371,22 @@ def build_premium_changes_only():
     return stats
 
 
+def sync_premium_news_only():
+    from scanner.editorial_news import EditorialNewsError, sync_editorial_news
+
+    try:
+        stats = sync_editorial_news()
+    except EditorialNewsError as exc:
+        log.error("Синхронизация Google Sheets не выполнена: %s", exc)
+        raise SystemExit(1) from exc
+    log.info(
+        "Google Sheets синхронизирован: %d новостей; дублей пропущено: %d",
+        stats["imported"],
+        stats["duplicates"],
+    )
+    return stats
+
+
 def _run_id(scan_dt: str) -> str:
     return f"run_{scan_dt.replace('-', '').replace(':', '').replace('T', '_')}"
 
@@ -451,7 +468,10 @@ def main():
                        help="собрать HTML-лендинг Сбер VS банки из JSON-экспорта")
     group.add_argument("--build-premium-changes", action="store_true",
                        help="собрать HTML-лендинг изменений премиальных программ "
-                            "с premiumbanking.info")
+                            "из PremiumBanking.info и Google Sheets")
+    group.add_argument("--sync-premium-news", action="store_true",
+                       help="проверить Google Sheets и обновить кеш "
+                            "редакционных новостей")
     group.add_argument("--build-premium-reviews", action="store_true",
                        help="собрать отзывы о премиальном обслуживании Сбера "
                             "(Sravni/Otzovik/ПБИ) и HTML-отчёт")
@@ -468,6 +488,8 @@ def main():
         build_sber_vs_only()
     elif args.build_premium_changes:
         build_premium_changes_only()
+    elif args.sync_premium_news:
+        sync_premium_news_only()
     elif args.build_premium_reviews:
         from landing.premium_reviews import build_premium_reviews_landing
         stats = build_premium_reviews_landing(

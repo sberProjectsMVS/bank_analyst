@@ -12,6 +12,7 @@ from urllib import robotparser
 import requests
 from bs4 import BeautifulSoup, Tag
 
+from scanner.editorial_news import load_editorial_news
 from scanner.sources import PRIORITY_SOURCE_URLS
 
 
@@ -75,8 +76,8 @@ MONTHS = {
 
 
 def build_premium_changes_landing(_workbook_path: Path, output_path: Path) -> dict:
-    """Fetch PremiumBanking.info update blocks and write a static HTML page."""
-    changes, failed = fetch_pbi_updates()
+    """Fetch automatic and editorial updates and write a static HTML page."""
+    changes, failed = collect_premium_updates()
     banks = group_by_bank(changes)
     html_text = render_html(banks, datetime.now())
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -90,13 +91,27 @@ def build_premium_changes_landing(_workbook_path: Path, output_path: Path) -> di
 
 
 def load_changes(_workbook_path: Path = None) -> list[dict]:
-    """Return news records from PremiumBanking.info update sections.
+    """Return news from PremiumBanking.info and the editorial Google Sheet.
 
     The argument is accepted for compatibility with the main comparison builder;
     the comparison data itself is not used as a source for this feed.
     """
-    changes, _failed = fetch_pbi_updates()
+    changes, _failed = collect_premium_updates()
     return changes
+
+
+def collect_premium_updates() -> tuple[list[dict], int]:
+    """Combine parsed PBI updates with the last valid editorial-sheet import."""
+    changes, failed = fetch_pbi_updates()
+    editorial_changes, editorial_status = load_editorial_news(sync=True)
+    changes.extend(editorial_changes)
+    changes.sort(
+        key=lambda item: (item.get("dateSort", ""), -int(item.get("order", 0))),
+        reverse=True,
+    )
+    if editorial_status.get("failed"):
+        failed += 1
+    return changes, failed
 
 
 def fetch_pbi_updates(fetcher=None) -> tuple[list[dict], int]:
@@ -155,7 +170,10 @@ def group_by_bank(changes: list[dict]) -> list[dict]:
         {"name": bank, "changes": bank_changes}
         for bank, bank_changes in sorted(
             by_bank.items(),
-            key=lambda item: source_order.get(item[0], len(source_order)),
+            key=lambda item: (
+                source_order.get(item[0], len(source_order)),
+                item[0].casefold(),
+            ),
         )
     ]
 
@@ -215,7 +233,7 @@ def render_changes_app(banks: list[dict], generated_at: datetime) -> str:
     return f"""
     <section class="changes-app">
     <header class="changes-top">
-      <p class="eyebrow">PremiumBanking.info</p>
+      <p class="eyebrow">Мониторинг премиального банкинга</p>
       <h1>Последние изменения</h1>
       <div class="changes-stats">
         <span><b>{len(banks)}</b> банков</span>
@@ -239,7 +257,7 @@ def render_changes_app(banks: list[dict], generated_at: datetime) -> str:
       </label>
     </section>
     <section class="changes-banks">
-      {bank_sections or '<p class="empty">Публикации PremiumBanking.info не найдены.</p>'}
+      {bank_sections or '<p class="empty">Публикации не найдены.</p>'}
     </section>
     </section>"""
 
@@ -256,7 +274,10 @@ def _render_bank(bank: dict) -> str:
 
 
 def _render_change(change: dict) -> str:
-    change_id = f"{change.get('bank', '')}-{change.get('order', '')}"
+    change_id = (
+        change.get("record_id")
+        or f"{change.get('origin', 'pbi')}-{change.get('bank', '')}-{change.get('order', '')}"
+    )
     source_url = _source_button_url(change)
     return f"""
           <article class="change js-change-card"
@@ -279,6 +300,8 @@ def _fetch_pbi_page(url: str) -> str:
 
 
 def _source_button_url(change: dict) -> str:
+    if change.get("origin") == "google_sheets":
+        return _clean_url(change.get("sourcePage", ""))
     bank = change.get("bank", "")
     return _clean_url(SOURCE_BUTTON_URLS.get(bank) or change.get("sourcePage", ""))
 

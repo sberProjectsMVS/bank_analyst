@@ -801,6 +801,39 @@ class SourcePolicyTests(unittest.TestCase):
                 with self.subTest(field_id=field_id, marker=marker):
                     self.assertNotIn(marker, combined)
 
+    def test_alfa_only_cash_withdrawal_has_official_numeric_limits(self):
+        from landing.sber_vs import _limit_evaluation
+        from scanner.curated import curated_for
+
+        limits_url = (
+            "https://alfabank.ru/help/articles/debit-cards/"
+            "kak-snimat-dengi-s-karty-v-bankomate/"
+        )
+        self.assertIn(limits_url, registered_source_urls())
+        for tier_id in (
+            "alfa_only_1",
+            "alfa_only_2",
+            "alfa_only_3",
+            "alfa_only_4",
+        ):
+            fact = curated_for(tier_id)["cash_withdrawal"]
+            self.assertIn("1,5 млн ₽ в сутки", fact["value"])
+            self.assertIn("3 млн ₽ в месяц", fact["value"])
+            self.assertIn(limits_url, fact["source_url"])
+            self.assertEqual(fact["date_checked"], "2026-07-27")
+
+            evaluation = _limit_evaluation(fact["value"], "cash_withdrawal")
+            self.assertEqual(evaluation["status"], "comparable")
+            self.assertEqual(
+                evaluation["metrics"]["limits"],
+                [
+                    {"amount": 1_500_000.0, "period": "day"},
+                    {"amount": 3_000_000.0, "period": "month"},
+                ],
+            )
+
+        self.assertNotIn("cash_withdrawal", curated_for("alfa_aclub"))
+
     def test_no_sber_status_hardcode_in_html(self):
         source = inspect.getsource(sber_vs)
 

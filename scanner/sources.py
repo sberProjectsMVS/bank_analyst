@@ -290,13 +290,37 @@ _VTB_PRIVILEGE_CARD = "https://www.vtb.ru/privilegia/karty/debetovye/privilegiya
 _VTB_SBP_OFFICIAL = "https://www.vtb.ru/personal/online-servisy/perevody-sbp/"
 _RAIF_PACKAGE_TARIFF_PDF = "https://www.raiffeisen.ru/common/img/uploaded/files/retail/package/tariffs_pakety_uslug.pdf"
 _RAIF_PREMIUM_OFFICIAL = "https://www.raiffeisen.ru/premium/"
-_GPB_PREMIUM_BONUS_TARIFF_PDF = "https://www.gazprombank.ru/upload/files/iblock/9ff/1ha4uno7pm7yti3z20ke9bdre727aog7/Tarify-po-predostavleniyu-fizicheskim-litsam-_-klientam-Banka-GPB-servisa-Gazprom-Bonus-_Premium_-_s-27.01.2026_.pdf"
-_GPB_PREMIUM_OFFICIAL = "https://www.gazprombank.ru/premium/"
+_GPB_PREMIUM_TARIFF_PDF = (
+    "https://www.gazprombank.ru/upload/files/iblock/e97/"
+    "h038o8uoge7g8zucvs80yz2sy8r9gejz/"
+    "Tarif-Gazprombank.Premium-s-22.07.2026.pdf"
+)
+_GPB_PREMIUM_BONUS_TARIFF_PDF = (
+    "https://www.gazprombank.ru/upload/files/iblock/a37/"
+    "pdmoo1wsztjxq7zl1zsl7xa8v7wpuj0z/"
+    "Usloviya-predostavleniya-fizicheskim-litsam-klientam-Banka-GPB-_AO_-"
+    "servisa-Gazprom-Bonus-Premium-_deystvuet-s-06.07.2026_.pdf"
+)
+_GPB_PREMIUM_CASHBACK_PDF = (
+    "https://www.gazprombank.ru/upload/files/iblock/474/"
+    "102zjqtow8yzfiixl6bvikr0khvb3g51/"
+    "Programma-loyalnosti-Banka-GPB-_AO_-po-nachisleniyu-keshbeka-"
+    "_deystvuet-s-01.06.2026_.pdf"
+)
+_GPB_PREMIUM_OFFICIAL = "https://www.gazprombank.ru/premium/special/pu-premium/"
 _GPB_PREMIUM_BONUS_OFFICIAL = "https://www.gazprombank.ru/premium/gazprom-bonus/"
 _GPB_PRIVATE_OFFICIAL = "https://www.gazprombank.ru/private/"
+_GPB_PRIVATE_PACKAGE_OFFICIAL = (
+    "https://www.gazprombank.ru/private/package-of-services/"
+)
+_GPB_PRIVATE_TRANSFERS_PDF = "https://www.gazprombank.ru/download/8091775/"
 _ALFA_ONLY_CARD_TARIFFS = (
     "https://alfabank.servicecdn.ru/site-upload/c1/65/275/"
     "Tariffs_Alfa_Only_Card.pdf"
+)
+_ALFA_CASH_LIMITS_OFFICIAL = (
+    "https://alfabank.ru/help/articles/debit-cards/"
+    "kak-snimat-dengi-s-karty-v-bankomate/"
 )
 _ALFA_ONLY_OFFICIAL = "https://alfabank.ru/everyday/package/premium/"
 _ALFA_ONLY_DEPOSIT_OFFICIAL = (
@@ -318,7 +342,7 @@ PRIORITY_SOURCE_URLS = {
         "vtb_rko": _VTB_RKO_TARIFF_XLSX,
         "vtb_prime_plus": _VTB_PRIME_PLUS_TARIFF_PDF,
         "raiffeisen": _RAIF_PACKAGE_TARIFF_PDF,
-        "gazprombank": _GPB_PREMIUM_BONUS_TARIFF_PDF,
+        "gazprombank": _GPB_PREMIUM_TARIFF_PDF,
         "alfa_only": _ALFA_ONLY_CARD_TARIFFS,
         "alfa_aclub": _ALFA_ACLUB_OFFICIAL,
     },
@@ -569,6 +593,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_SALARY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/1"),
                 ],
             },
@@ -580,6 +605,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/2"),
                 ],
             },
@@ -591,6 +617,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/3"),
                 ],
             },
@@ -602,6 +629,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/4"),
                 ],
             },
@@ -741,7 +769,9 @@ BANKS = [
                 "sources": [
                     _src("official", _GPB_PREMIUM_OFFICIAL),
                     _src("official", _GPB_PREMIUM_BONUS_OFFICIAL),
+                    _src("official", _GPB_PREMIUM_TARIFF_PDF),
                     _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PREMIUM_CASHBACK_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/1"),
                 ],
             },
@@ -751,7 +781,9 @@ BANKS = [
                 "segment": "3–10 млн ₽",
                 "sources": [
                     _src("official", _GPB_PREMIUM_OFFICIAL),
+                    _src("official", _GPB_PREMIUM_TARIFF_PDF),
                     _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PREMIUM_CASHBACK_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/2"),
                 ],
             },
@@ -761,7 +793,9 @@ BANKS = [
                 "segment": "10–25 млн ₽",
                 "sources": [
                     _src("official", _GPB_PREMIUM_OFFICIAL),
+                    _src("official", _GPB_PREMIUM_TARIFF_PDF),
                     _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PREMIUM_CASHBACK_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/3"),
                 ],
             },
@@ -771,7 +805,8 @@ BANKS = [
                 "segment": "25–100 млн ₽",
                 "sources": [
                     _src("official", _GPB_PRIVATE_OFFICIAL),
-                    _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PRIVATE_PACKAGE_OFFICIAL),
+                    _src("official", _GPB_PRIVATE_TRANSFERS_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/4"),
                 ],
             },

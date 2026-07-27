@@ -13,11 +13,13 @@ from landing.sber_vs import (
     _benefit_display,
     _benefit_rub_total,
     _benefits_evaluation,
+    _cashback_evaluation,
     _compensation_evaluation,
     _condition_summary,
     _deposits_evaluation,
     _entry_match_from_text,
     _insurance_evaluation,
+    _limit_evaluation,
     _service_presence_evaluation,
     _service_evaluation,
     _service_cost_summary,
@@ -142,6 +144,51 @@ class PremiumStructuredTests(unittest.TestCase):
         ]
 
         self.assertEqual(amounts, [3_000, 9_000, 15_000])
+
+    def test_gpb_current_card_facts_and_comparison_metrics(self):
+        for tier_id in ("gpb_premium_1", "gpb_premium_2", "gpb_premium_3"):
+            with self.subTest(tier_id=tier_id):
+                facts = curated_for(tier_id)
+                cashback = facts["cashback"]
+                self.assertIn("до 6%", cashback["value"])
+                self.assertIn("40 000 бонусных баллов", cashback["value"])
+                self.assertIn("01.06.2026", cashback["source_url"])
+                self.assertIn("200 000 ₽ в месяц", facts["transfers_payments"]["value"])
+                self.assertIn("50 000 ₽ в месяц", facts["transfers_payments"]["value"])
+                self.assertIn("до 1 000 000 ₽", facts["cash_withdrawal"]["value"])
+                self.assertIn("МИР Supreme", facts["supreme"]["value"])
+
+        premium = curated_for("gpb_premium_1")
+        cashback_eval = _cashback_evaluation(premium["cashback"]["value"])
+        self.assertEqual(cashback_eval["metrics"]["max_rate"], 6)
+        self.assertEqual(cashback_eval["metrics"]["monthly_bonus_cap"], 40_000)
+        self.assertEqual(cashback_eval["metrics"]["monthly_cap"], 40_000)
+
+        transfer_eval = _limit_evaluation(
+            premium["transfers_payments"]["value"], "transfers_payments"
+        )
+        self.assertEqual(
+            [item["amount"] for item in transfer_eval["metrics"]["limits"]],
+            [200_000, 50_000],
+        )
+        cash_eval = _limit_evaluation(
+            premium["cash_withdrawal"]["value"], "cash_withdrawal"
+        )
+        self.assertTrue(cash_eval["metrics"]["unlimited"])
+        self.assertIn("при выполнении условий", cash_eval["summary"])
+
+        private = curated_for("gpb_private")
+        self.assertIn("до 20%", private["cashback"]["value"])
+        self.assertIn("карта PRIME", private["supreme"]["value"])
+        self.assertIn("2% от суммы", private["transfers_payments"]["value"])
+        private_card = _service_presence_evaluation(
+            private["supreme"]["value"], "supreme"
+        )
+        self.assertEqual(private_card["metrics"]["card_tier_rank"], 5)
+
+        self.assertIn(
+            "22.07.2026", PRIORITY_SOURCE_URLS["official"]["gazprombank"]
+        )
 
     def test_vtb_prime_concierge_is_not_weaker_by_wording(self):
         prime = curated_for("vtb_prime_8")["concierge"]["value"]
@@ -1767,6 +1814,9 @@ class PremiumStructuredTests(unittest.TestCase):
             html,
         )
         self.assertIn("!ALWAYS_SHOW_FIELDS.has(baseAttr.id)", html)
+        self.assertIn('"tier_id": "sber_premier_1"', html)
+        self.assertIn("gazprombankTransferHierarchyFallback", html)
+        self.assertIn("Private — старший уровень", html)
 
     def test_pbi_parser_extracts_new_bank_fields_without_cross_tier_transfer(self):
         html = """
