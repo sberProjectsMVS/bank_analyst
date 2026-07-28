@@ -1152,20 +1152,31 @@ def _compensation_evaluation(text: str, field: str) -> dict:
         return _incomparable_evaluation(
             "Привилегия действует с отдельным ограничением.", _shorten(text, 110)
         )
+    # Capital, salary and purchase thresholds describe eligibility, not the
+    # value of a taxi/restaurant benefit.  Ignore the qualification tail when
+    # extracting counts and ruble amounts, but keep the full text for the
+    # displayed condition and availability status.
+    benefit_text = re.split(
+        r"\bусловия\s*:|(?:доступн\w*\s+)?при\s+"
+        r"(?:остат|баланс|капитал|покуп|трат|зачисл|поступл|оборот)",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
     metrics = {}
     if any(marker in low for marker in ("безлимит", "без ограничений", "не ограничен")):
         metrics["unlimited"] = 1
-    counts = _monthly_counts(text)
+    counts = _monthly_counts(benefit_text)
     if counts:
         metrics["monthly_count"] = max(counts)
-    annual_counts = _annual_counts(text)
+    annual_counts = _annual_counts(benefit_text)
     if annual_counts:
         metrics["annual_count"] = max(annual_counts)
-    amounts = _rub_amounts(text)
+    amounts = _rub_amounts(benefit_text)
     per_use = re.search(
         r"(?:по|до|на|чек(?:а|ом)?\s*(?:до)?|поездк[аи]?\s*(?:до)?)\s*"
-        r"(\d[\d\s.,]*)\s*(тыс|млн)?\s*₽",
-        text,
+        r"(\d[\d\s.,]*)\s*(тыс|млн)?\s*(?:₽|ингорубл(?:ей|я|ь)?)",
+        benefit_text,
         flags=re.IGNORECASE,
     )
     if per_use:
@@ -1730,7 +1741,8 @@ def _monthly_counts(text: str) -> list[float]:
         float(n.replace(",", "."))
         for n in re.findall(
             r"(\d+(?:[.,]\d+)?)\s*(?:в мес|/мес|раз(?:а|ов)? в месяц|"
-            r"посещени(?:е|я|й) в месяц)", low
+            r"посещени(?:е|я|й) в месяц|привилеги(?:я|и|й) в месяц|"
+            r"поезд(?:ка|ки|ок)[^.;]{0,20}в месяц)", low
         )
     ]
     annual = [count / 12 for count in _annual_counts(text)]

@@ -13,6 +13,7 @@ import requests
 from bs4 import BeautifulSoup, Tag
 
 from scanner.editorial_news import load_editorial_news
+from scanner.premium_news import load_monitored_premium_news
 from scanner.sources import PRIORITY_SOURCE_URLS
 
 
@@ -76,16 +77,18 @@ MONTHS = {
 
 
 def build_premium_changes_landing(_workbook_path: Path, output_path: Path) -> dict:
-    """Fetch automatic and editorial updates and write a static HTML page."""
+    """Fetch every accepted update and write one filterable chronological feed."""
     changes, failed = collect_premium_updates()
     banks = group_by_bank(changes)
     html_text = render_html(banks, datetime.now())
+    html_text = "\n".join(line.rstrip() for line in html_text.splitlines()) + "\n"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html_text, encoding="utf-8")
     return {
         "output": str(output_path),
         "banks": len(banks),
         "changes": sum(len(bank["changes"]) for bank in banks),
+        "news": sum(item.get("origin") == "news_monitor" for item in changes),
         "failed": failed,
     }
 
@@ -101,10 +104,12 @@ def load_changes(_workbook_path: Path = None) -> list[dict]:
 
 
 def collect_premium_updates() -> tuple[list[dict], int]:
-    """Combine parsed PBI updates with the last valid editorial-sheet import."""
+    """Combine PBI, editorial changes, and strict monitored news in one feed."""
     changes, failed = fetch_pbi_updates()
     editorial_changes, editorial_status = load_editorial_news(sync=True)
     changes.extend(editorial_changes)
+    changes.extend(load_monitored_premium_news())
+    changes = _deduplicate_changes(changes)
     changes.sort(
         key=lambda item: (item.get("dateSort", ""), -int(item.get("order", 0))),
         reverse=True,
@@ -112,6 +117,38 @@ def collect_premium_updates() -> tuple[list[dict], int]:
     if editorial_status.get("failed"):
         failed += 1
     return changes, failed
+
+
+def load_all_news() -> list[dict]:
+    """Return monitored premium-banking news as one chronological stream."""
+    news = load_monitored_premium_news()
+    news.sort(
+        key=lambda item: (item.get("dateSort", ""), -int(item.get("order", 0))),
+        reverse=True,
+    )
+    return news
+
+
+def _deduplicate_changes(changes: list[dict]) -> list[dict]:
+    """Drop exact repeats while keeping official monitored records first."""
+    source_rank = {"official": 0, "premiumbanking.info": 1, "industry": 2}
+    ordered = sorted(
+        changes,
+        key=lambda item: source_rank.get(item.get("source_type", ""), 3),
+    )
+    seen = set()
+    result = []
+    for item in ordered:
+        key = (
+            item.get("bank", "").casefold(),
+            item.get("dateSort", ""),
+            re.sub(r"\W+", " ", item.get("text", "").casefold()).strip(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(item)
+    return result
 
 
 def fetch_pbi_updates(fetcher=None) -> tuple[list[dict], int]:
@@ -178,8 +215,12 @@ def group_by_bank(changes: list[dict]) -> list[dict]:
     ]
 
 
-def render_html(banks: list[dict], generated_at: datetime) -> str:
-    app_html = render_changes_app(banks, generated_at)
+def render_html(
+    banks: list[dict],
+    generated_at: datetime,
+    news: Optional[list[dict]] = None,
+) -> str:
+    app_html = render_changes_app(banks, generated_at, news)
     payload = _esc(json.dumps({"changes": banks}, ensure_ascii=False))
     return f"""<!DOCTYPE html>
 <html lang="ru">
@@ -223,21 +264,46 @@ def render_changes_panel(banks: list[dict], generated_at: datetime) -> str:
       </section>"""
 
 
-def render_changes_app(banks: list[dict], generated_at: datetime) -> str:
-    bank_options = "\n".join(
-        f'<option value="{_esc(bank["name"])}">{_esc(bank["name"])}</option>'
-        for bank in banks
+def render_changes_app(
+    banks: list[dict],
+    generated_at: datetime,
+    news: Optional[list[dict]] = None,
+) -> str:
+    # `news` remains a compatibility argument for callers from the short-lived
+    # two-tab version. If supplied, merge it into the same feed.
+    feed = [item for bank in banks for item in bank["changes"]]
+    if news:
+        feed = _deduplicate_changes([*feed, *news])
+    feed.sort(
+        key=lambda item: (item.get("dateSort", ""), -int(item.get("order", 0))),
+        reverse=True,
     )
-    bank_sections = "\n".join(_render_bank(bank) for bank in banks)
-    changes_count = sum(len(bank["changes"]) for bank in banks)
+    bank_names = sorted(
+        {item.get("bank", "") for item in feed if item.get("bank")},
+        key=str.casefold,
+    )
+    bank_options = "\n".join(
+        f'<option value="{_esc(bank)}">{_esc(bank)}</option>'
+        for bank in bank_names
+    )
+    feed_cards = "\n".join(_render_feed_item(item) for item in feed)
+    event_types = {
+        _event_type(item)
+        for item in feed
+    }
+    type_options = "\n".join(
+        f'<option value="{_esc(event_type)}">{_esc(EVENT_TYPE_LABELS[event_type])}</option>'
+        for event_type in EVENT_TYPE_LABELS
+        if event_type in event_types
+    )
     return f"""
     <section class="changes-app">
     <header class="changes-top">
       <p class="eyebrow">Мониторинг премиального банкинга</p>
       <h1>Последние изменения</h1>
       <div class="changes-stats">
-        <span><b>{len(banks)}</b> банков</span>
-        <span><b>{changes_count}</b> публикаций</span>
+        <span><b>{len(bank_names)}</b> банков</span>
+        <span><b>{len(feed)}</b> публикаций</span>
       </div>
     </header>
     <section class="changes-filters" aria-label="Фильтры">
@@ -255,9 +321,18 @@ def render_changes_app(banks: list[dict], generated_at: datetime) -> str:
           <option value="365">Год</option>
         </select>
       </label>
+      <label>Тип
+        <select class="js-change-type-filter">
+          <option value="">Все изменения и новости</option>
+          {type_options}
+        </select>
+      </label>
     </section>
-    <section class="changes-banks">
-      {bank_sections or '<p class="empty">Публикации не найдены.</p>'}
+    <section class="unified-feed">
+      <div class="timeline unified-timeline">
+        {feed_cards or '<p class="empty">Изменения не найдены.</p>'}
+      </div>
+      <p class="empty js-change-empty" hidden>По выбранным фильтрам ничего не найдено.</p>
     </section>
     </section>"""
 
@@ -279,15 +354,71 @@ def _render_change(change: dict) -> str:
         or f"{change.get('origin', 'pbi')}-{change.get('bank', '')}-{change.get('order', '')}"
     )
     source_url = _source_button_url(change)
+    source_badge = ""
+    if change.get("origin") == "news_monitor":
+        source_kind = (
+            "Официальный источник"
+            if change.get("source_type") == "official"
+            else "Отраслевой источник"
+        )
+        source_badge = (
+            f'<span class="change-source-kind">{_esc(source_kind)} · '
+            f'{_esc(change.get("source_name", ""))}</span>'
+        )
     return f"""
           <article class="change js-change-card"
               data-change-id="{_esc(change_id)}"
               data-date="{_esc(change.get('dateSort', ''))}">
             <div class="change-head">
               <span>{_esc(change.get('dateLabel', ''))}</span>
+              {source_badge}
             </div>
             <p>{_esc(change.get('text', ''))}</p>
             <a href="{_esc(source_url)}" target="_blank" rel="noreferrer">Источник</a>
+          </article>"""
+
+
+EVENT_TYPE_LABELS = {
+    "conditions": "Изменение условий",
+    "launch": "Запуск продукта",
+    "document": "Новый тариф или документ",
+    "event": "Событие для клиентов",
+    "news": "Другая новость",
+}
+
+
+def _event_type(change: dict) -> str:
+    value = change.get("event_type")
+    return value if value in EVENT_TYPE_LABELS else "conditions"
+
+
+def _render_feed_item(change: dict) -> str:
+    event_type = _event_type(change)
+    source_type = change.get("source_type")
+    if source_type == "official":
+        source_kind = "Официальный источник"
+    elif source_type == "industry":
+        source_kind = "Отраслевой источник"
+    elif change.get("origin") == "google_sheets":
+        source_kind = "Редакционное добавление"
+    else:
+        source_kind = "PremiumBanking.info"
+    source_name = change.get("source_name", "")
+    source_label = f"{source_kind} · {source_name}" if source_name else source_kind
+    return f"""
+          <article class="change js-change-card"
+              data-bank="{_esc(change.get('bank', ''))}"
+              data-type="{_esc(event_type)}"
+              data-date="{_esc(change.get('dateSort', ''))}">
+            <div class="change-head">
+              <span>{_esc(change.get('dateLabel', ''))}</span>
+              <span class="news-bank">{_esc(change.get('bank', ''))}</span>
+              <span class="event-type">{_esc(EVENT_TYPE_LABELS[event_type])}</span>
+              <span class="change-source-kind">{_esc(source_label)}</span>
+            </div>
+            <p>{_esc(change.get('text', ''))}</p>
+            <a href="{_esc(_source_button_url(change))}" target="_blank"
+                rel="noreferrer">Источник</a>
           </article>"""
 
 
@@ -300,7 +431,7 @@ def _fetch_pbi_page(url: str) -> str:
 
 
 def _source_button_url(change: dict) -> str:
-    if change.get("origin") == "google_sheets":
+    if change.get("origin") in {"google_sheets", "news_monitor"}:
         return _clean_url(change.get("sourcePage", ""))
     bank = change.get("bank", "")
     return _clean_url(SOURCE_BUTTON_URLS.get(bank) or change.get("sourcePage", ""))
@@ -371,7 +502,8 @@ _JS = """
 function changeFilters(root) {
   return {
     bank: root.querySelector('.js-change-bank-filter'),
-    period: root.querySelector('.js-change-period-filter')
+    period: root.querySelector('.js-change-period-filter'),
+    type: root.querySelector('.js-change-type-filter')
   };
 }
 
@@ -388,16 +520,18 @@ function applyChangeFilters(root) {
   const filters = changeFilters(root);
   const bankValue = filters.bank.value;
   const periodValue = filters.period.value;
-  root.querySelectorAll('.js-change-bank').forEach(bank => {
-    const bankMatch = !bankValue || bank.dataset.bank === bankValue;
-    let visibleCount = 0;
-    bank.querySelectorAll('.js-change-card').forEach(change => {
-      const visible = bankMatch && withinChangePeriod(change.dataset.date, periodValue);
-      change.hidden = !visible;
-      if (visible) visibleCount += 1;
-    });
-    bank.hidden = visibleCount === 0;
+  const typeValue = filters.type.value;
+  let visibleCount = 0;
+  root.querySelectorAll('.js-change-card').forEach(change => {
+    const visible =
+      (!bankValue || change.dataset.bank === bankValue) &&
+      (!typeValue || change.dataset.type === typeValue) &&
+      withinChangePeriod(change.dataset.date, periodValue);
+    change.hidden = !visible;
+    if (visible) visibleCount += 1;
   });
+  const empty = root.querySelector('.js-change-empty');
+  if (empty) empty.hidden = visibleCount !== 0;
 }
 
 function initChangesApp(root) {
@@ -501,9 +635,31 @@ _EMBED_CSS = """
   border-radius: 8px;
   padding: 9px 12px;
 }
+.changes-view-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 22px 0 4px;
+}
+.changes-view-tab {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 8px 16px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+.changes-view-tab.is-active {
+  border-color: var(--accent);
+  background: #eef8f2;
+  color: #0b6b3f;
+}
 .changes-filters {
   display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
   gap: 12px;
   margin: 22px 0;
 }
@@ -526,6 +682,42 @@ _EMBED_CSS = """
   padding: 12px 0 12px 14px;
 }
 .change-head { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+.change-source-kind {
+  border-radius: 999px;
+  background: #eef8f2;
+  color: #0b6b3f;
+  padding: 1px 7px;
+}
+.news-bank {
+  border-radius: 999px;
+  background: #f1f3f6;
+  color: var(--text);
+  padding: 1px 7px;
+  font-weight: 700;
+}
+.event-type {
+  border-radius: 999px;
+  background: #fff5db;
+  color: #8a5a00;
+  padding: 1px 7px;
+  font-weight: 700;
+}
+.unified-feed { margin-top: 4px; }
+.unified-timeline {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 18px;
+}
+.all-news { margin-top: 22px; }
+.all-news h2 { margin-bottom: 4px; }
+.all-news-intro { margin: 0 0 14px; color: var(--muted); }
+.all-news-timeline {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 18px;
+}
 .change p { margin: 6px 0 10px; }
 .changes-app a { color: var(--accent); font-weight: 700; }
 .empty { color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
