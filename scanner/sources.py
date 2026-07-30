@@ -285,6 +285,7 @@ _VTB_PRIVILEGE_TARIFF_PDF = "https://www.vtb.ru/media-files/vtb.ru/sitepages/tar
 _VTB_RKO_TARIFF_XLSX = "https://www.vtb.ru/media-files/vtb.ru/sitepages/tarify/chastnim-licam/t_rko.xlsx"
 _VTB_PRIME_PLUS_TARIFF_PDF = "https://private.vtb.ru/media-files/private.vtb.ru/sitepages/promo/new-pu-pm/tarify_praym_plyus_01.10.2025.pdf"
 _VTB_PRIVILEGE_OFFICIAL = "https://www.vtb.ru/privilegia/"
+_VTB_PRIVILEGE_UPDATE_2026 = "https://www.vtb.ru/promo/rsvtb-pv-2/"
 _VTB_PRIME_PLUS_OFFICIAL = "https://www.vtb.ru/privilegia/paket-prime/"
 _VTB_PRIVILEGE_CARD = "https://www.vtb.ru/privilegia/karty/debetovye/privilegiya-mir-supreme/"
 _VTB_SBP_OFFICIAL = "https://www.vtb.ru/personal/online-servisy/perevody-sbp/"
@@ -360,6 +361,7 @@ PRIORITY_SOURCE_URLS = {
         "tbank_private": _TBANK_PRIVATE_OFFICIAL,
         "ozon_products": _OZON_PRODUCTS_OFFICIAL,
         "vtb_privilege": _VTB_PRIVILEGE_OFFICIAL,
+        "vtb_privilege_update_2026": _VTB_PRIVILEGE_UPDATE_2026,
         "vtb_sbp": _VTB_SBP_OFFICIAL,
         "vtb_prime_plus": _VTB_PRIME_PLUS_OFFICIAL,
         "raiffeisen": _RAIF_PREMIUM_OFFICIAL,
@@ -661,9 +663,10 @@ BANKS = [
         "tiers": [
             {
                 "tier_id": "vtb_privilege_1",
-                "tier_name": "Привилегия — уровень 1",
+                "tier_name": "Привилегия — Изумруд",
                 "segment": "0–3 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
                     _src("official", _VTB_RKO_TARIFF_XLSX),
@@ -673,9 +676,10 @@ BANKS = [
             },
             {
                 "tier_id": "vtb_privilege_2",
-                "tier_name": "Привилегия — уровень 2",
+                "tier_name": "Привилегия — Сапфир",
                 "segment": "0–3 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
                     _src("official", _VTB_RKO_TARIFF_XLSX),
@@ -685,9 +689,10 @@ BANKS = [
             },
             {
                 "tier_id": "vtb_privilege_3",
-                "tier_name": "Привилегия — уровень 3",
+                "tier_name": "Привилегия — Рубин",
                 "segment": "3–10 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
                     _src("official", _VTB_RKO_TARIFF_XLSX),
@@ -697,9 +702,10 @@ BANKS = [
             },
             {
                 "tier_id": "vtb_privilege_4",
-                "tier_name": "Привилегия — уровень 4",
+                "tier_name": "Привилегия — Бриллиант",
                 "segment": "10–25 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
                     _src("official", _VTB_RKO_TARIFF_XLSX),
@@ -1403,6 +1409,15 @@ PREMIUM_NEWS_SOURCES = [
         "url": "https://t.me/s/AlfaBank",
     },
     {
+        "id": "alfa_only_telegram",
+        "name": "Alfa Only",
+        "bank_id": "alfa",
+        "bank": "Альфа-Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/aaa_only",
+    },
+    {
         "id": "gazprombank_telegram",
         "name": "Официальный канал Газпромбанка",
         "bank_id": "gazprombank",
@@ -1437,6 +1452,132 @@ PREMIUM_NEWS_SOURCES = [
         "source_type": "official",
         "kind": "telegram",
         "url": "https://t.me/s/Raiffeisenbankrus",
+    },
+    {
+        "id": "tbank_telegram",
+        "name": "Официальный канал Т-Банка",
+        "bank_id": "tbank",
+        "bank": "Т-Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/tbank",
+    },
+    {
+        "id": "premiumbankinginfo_telegram",
+        "name": "Премиум Банкинг Инфо",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/premiumbankinginfo",
+    },
+    {
+        "id": "bankinform_telegram",
+        "name": "БанкИнформСервис",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/bankinform_ru",
+    },
+    {
+        "id": "frank_rg_telegram",
+        "name": "Frank RG",
+        "bank_id": "",
+        "bank": "Рынок",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/frank_rg",
+    },
+    {
+        "id": "bank_blog_telegram",
+        "name": "БанкБлог",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/bank_blog",
+    },
+    {
+        "id": "blogbankir_telegram",
+        "name": "Дайджест банковских новостей",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/blogbankir",
+    },
+    {
+        "id": "banksta_telegram",
+        "name": "Банкста",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/banksta",
+    },
+    {
+        "id": "profitanet_telegram",
+        "name": "Профита нет. А если найду?",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/profitanet",
+    },
+    {
+        "id": "mediyca_telegram",
+        "name": "Медийка",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/mediyca",
+    },
+    {
+        "id": "theblueprint_telegram",
+        "name": "The Blueprint",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/theblueprintru",
+    },
+    {
+        "id": "okeymood_telegram",
+        "name": "МУД",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/okeymood",
+    },
+    {
+        "id": "fashion_mur_telegram",
+        "name": "MUR",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/fashion_mur",
+    },
+    {
+        "id": "ksenia_solovieva_telegram",
+        "name": "Ксения Соловьёва",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/ksenia_solovieva",
+    },
+    {
+        "id": "darkmgimo_telegram",
+        "name": "Бахчисарайские гвоздики",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/darkmgimo",
     },
 ]
 

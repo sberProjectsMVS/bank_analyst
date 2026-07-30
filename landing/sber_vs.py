@@ -586,7 +586,9 @@ def _entry_match_from_text(value: str) -> dict:
     clauses = [
         part.strip(" ,;.|.")
         for part in re.split(
-            r"\s*(?:[;|\n]+|,\s*(?=(?:и\s+)?или\b)|\bи\s+или\b|\bили\b|"
+            r"\s*(?:[;|\n]+|\.\s+(?=(?:другие\s+)?регионы\b|москва\b)|"
+            r",\s*(?=(?:и\s+)?или\b)|\bи\s+или\b|"
+            r"\bили\b|\bлибо\b|"
             r"\bи\b(?=\s*\d[^;|]*(?:моск|мск|регион)))\s*",
             text,
             flags=re.IGNORECASE,
@@ -609,9 +611,9 @@ def _entry_match_from_text(value: str) -> dict:
             continue
         amount = amounts[0]
         if "моск" in low or re.search(r"\bмск\b", low):
-            regional.append(("moscow", amount))
+            regional.append(("moscow", amount, bool(re.search(r"\bдо\b", low))))
         elif "регион" in low:
-            regional.append(("regions", amount))
+            regional.append(("regions", amount, bool(re.search(r"\bдо\b", low))))
         else:
             generic.append(amount)
 
@@ -624,8 +626,17 @@ def _entry_match_from_text(value: str) -> dict:
             "label": _compact_rub(amount),
         }
     if regional:
-        values = [amount for _scope, amount in regional]
+        values = [amount for _scope, amount, _upper_bound in regional]
         minimum, maximum = min(values), max(values)
+        if all(upper_bound for _scope, _amount, upper_bound in regional):
+            return {
+                "eligible": True,
+                "min_amount": 0,
+                "max_amount": maximum,
+                "label": (
+                    f"до {_rub_interval_label(minimum, maximum)} по региону"
+                ),
+            }
         return {
             "eligible": True,
             "min_amount": minimum,

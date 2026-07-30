@@ -66,6 +66,7 @@ Registered priority official URLs:
 - VTB Faster Payments System: `https://www.vtb.ru/personal/online-servisy/perevody-sbp/`
 - VTB Prime+: `https://private.vtb.ru/media-files/private.vtb.ru/sitepages/promo/new-pu-pm/tarify_praym_plyus_01.10.2025.pdf`
 - VTB Privilege landing: `https://www.vtb.ru/privilegia/`
+- VTB Privilege levels effective 31 July 2026: `https://www.vtb.ru/promo/rsvtb-pv-2/`
 - VTB Prime+ landing: `https://www.vtb.ru/privilegia/paket-prime/`
 - Raiffeisen Bank: `https://www.raiffeisen.ru/common/img/uploaded/files/retail/package/tariffs_pakety_uslug.pdf`
 - Raiffeisen Premium landing: `https://www.raiffeisen.ru/premium/`

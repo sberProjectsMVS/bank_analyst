@@ -16,6 +16,7 @@ from urllib.parse import urljoin, urlparse, urlunparse
 import requests
 from bs4 import BeautifulSoup, Tag
 
+from scanner.news_text import clean_news_text
 from scanner.sources import PREMIUM_NEWS_SOURCES
 
 
@@ -39,6 +40,7 @@ GENERIC_PREMIUM_TERMS = (
     "премиаль", "премиум сервис", "премиум-сервис", "премиум клиент",
     "премиум сегмент", "премиум-сегмент",
     "premium banking", "private banking", "mir supreme", "мир supreme",
+    "hnwi", "wealth management",
 )
 PACKAGE_TERMS_BY_BANK = {
     "Сбер": (
@@ -74,6 +76,20 @@ PACKAGE_TERMS_BY_BANK = {
         "инго премиум", "инго premium", "ингокарта премиальная",
         "премиальная ингокарта", "премиальная карта ингосстрах банка",
     ),
+    "ОТП Банк": (
+        "otp premium", "отп premium", "отп премиум",
+        "otp private", "отп private",
+    ),
+    "БКС Банк": (
+        "бкс ультима", "bcs ultima", "ultima консьерж",
+    ),
+    "МТС Банк": (
+        "мтс premium", "мтс премиум", "mts premium",
+        "мтс private", "mts private",
+    ),
+    "Альфа-Капитал": (
+        "alfa wealth", "альфа wealth",
+    ),
 }
 PREMIUM_TERMS = (
     *GENERIC_PREMIUM_TERMS,
@@ -86,10 +102,33 @@ CHANGE_TERMS = (
     "стал доступ", "стала доступ", "стали доступ", "новые преимуществ",
     "новое премиаль", "новый премиаль", "новую премиаль",
 )
+STRONG_CONDITION_TERMS = (
+    "измен", "обновляет условия", "обновил условия", "обновила условия",
+    "обновленный тариф", "обновлённый тариф", "вместо", "отмен",
+    "отключ", "огранич",
+    "повыс", "пониз", "увелич", "уменьш", "ввод", "начнет",
+    "начнёт", "станет",
+)
 EVENT_TERMS = (
     "приглашаем", "встречаемся", "ждем вас", "ждём вас",
     "состоится", "пройдет", "пройдёт", "регистрация на",
-    "открыта регистрация",
+    "открыта регистрация", "организовал", "организовала",
+    "провел", "провёл", "провела", "устроил", "устроила",
+    "прошел", "прошёл", "прошла",
+)
+BENEFIT_TERMS = (
+    "кэшбэк", "кешбэк", "скидк", "бонус", "сертификат",
+    "компенсац", "привилег", "спецпредлож", "специальное предлож",
+    "доступ", "бизнес зал", "бизнес-зал", "лаундж",
+)
+LIFESTYLE_TERMS = (
+    "мероприят", "мастер класс", "мастер-класс", "концерт",
+    "подкаст", "амбассадор", "ресторан", "бар", "путешеств",
+    "маршрут", "тренировк", "дегустац", "коллаборац",
+)
+MARKET_TERMS = (
+    "исследован", "рынок", "капитал", "сегмент", "динамик",
+    "аналитик", "статистик",
 )
 DOCUMENT_TERMS = (
     "тариф", "условия обслуживания", "условия предоставления",
@@ -101,13 +140,17 @@ EXCLUDED_TERMS = (
 )
 BANK_ALIASES = {
     "Сбер": ("сбер", "сбербанк"),
-    "Альфа-Банк": ("альфа-банк", "альфа банк", "alfa"),
+    "Альфа-Банк": ("альфа-банк", "альфа банк", "alfa bank"),
     "ВТБ": ("втб",),
     "Газпромбанк": ("газпромбанк",),
     "Озон Банк": ("ozon банк", "озон банк", "ozon банка", "озон банка"),
     "Райффайзен Банк": ("райффайзен",),
     "Т-Банк": ("т-банк", "т банк", "т‑банк", "t-bank"),
     "Инго Банк": ("инго банк", "ингосстрах банк", "ингосстрах банка"),
+    "ОТП Банк": ("отп банк", "otp bank", "отп банка"),
+    "БКС Банк": ("бкс банк", "бкс ультима", "bcs bank", "bcs ultima"),
+    "МТС Банк": ("мтс банк", "mts bank", "мтс банка"),
+    "Альфа-Капитал": ("альфа-капитал", "альфа капитал", "alfa capital"),
     "Уралсиб": ("уралсиб",),
     "Совкомбанк": ("совкомбанк",),
     "МКБ": ("мкб", "московский кредитный банк"),
@@ -135,6 +178,12 @@ PACKAGE_TERMS_BY_BANK.update({
         "пакет услуг премиум",
     ),
 })
+AMBIGUOUS_BANK_DETECTION_TERMS = {
+    "привилег", "private banking", "premium banking",
+    "пакет услуг премиум", "пакета услуг премиум",
+    "пакет услуг премиальный", "wealth management premium",
+    "mir supreme premium", "мир supreme premium",
+}
 
 
 class PremiumNewsError(RuntimeError):
@@ -176,6 +225,7 @@ def is_relevant(text: str, bank: str = "") -> bool:
         return False
     package_terms = PACKAGE_TERMS_BY_BANK.get(bank, ())
     premium_terms = (*GENERIC_PREMIUM_TERMS, *package_terms)
+    bank_terms = BANK_ALIASES.get(bank, ())
     segments = [
         _clean_text(item)
         for item in re.split(
@@ -191,11 +241,19 @@ def is_relevant(text: str, bank: str = "") -> bool:
         if index + 1 < len(segments):
             windows.append(f"{segment} {segments[index + 1]}")
         for window in windows:
+            has_package = _contains_any(window, package_terms)
+            has_premium = _contains_any(window, premium_terms)
+            names_bank = _contains_any(window, bank_terms)
             if (
-                _contains_any(window, premium_terms)
+                has_premium
                 and (
                     _contains_any(window, CHANGE_TERMS)
                     or _contains_any(window, EVENT_TERMS)
+                    or _contains_any(window, MARKET_TERMS)
+                    or (
+                        _contains_any(window, BENEFIT_TERMS)
+                        and (has_package or names_bank)
+                    )
                 )
             ):
                 return True
@@ -204,12 +262,28 @@ def is_relevant(text: str, bank: str = "") -> bool:
 
 def classify_event(text: str) -> str:
     """Classify an accepted item for the landing filter."""
+    if _contains_any(text, ("по слухам", "не подтвержден", "не подтверждён",
+                            "без подтверждающ")):
+        return "rumor"
+    if (
+        _contains_any(text, ("запуст", "запуска"))
+        and _contains_any(text, LIFESTYLE_TERMS)
+    ):
+        return "lifestyle"
     if _contains_any(text, ("запуст", "запуска")):
         return "launch"
-    if _contains_any(text, EVENT_TERMS):
-        return "event"
     if _contains_any(text, DOCUMENT_TERMS):
         return "document"
+    if _contains_any(text, STRONG_CONDITION_TERMS):
+        return "conditions"
+    if _contains_any(text, EVENT_TERMS):
+        return "lifestyle"
+    if _contains_any(text, BENEFIT_TERMS):
+        return "benefit"
+    if _contains_any(text, LIFESTYLE_TERMS):
+        return "lifestyle"
+    if _contains_any(text, MARKET_TERMS):
+        return "market"
     if _contains_any(text, CHANGE_TERMS) and not _contains_any(text, ("офис", "филиал")):
         return "conditions"
     return "news"
@@ -217,9 +291,21 @@ def classify_event(text: str) -> str:
 
 def detect_bank(text: str) -> str:
     lowered = _match_text(text)
+    matched = set()
     for bank, aliases in BANK_ALIASES.items():
         if any(_match_text(alias) in lowered for alias in aliases):
-            return bank
+            matched.add(bank)
+    for bank, package_terms in PACKAGE_TERMS_BY_BANK.items():
+        if any(
+            _match_text(term) in lowered
+            for term in package_terms
+            if term not in AMBIGUOUS_BANK_DETECTION_TERMS
+        ):
+            matched.add(bank)
+    if len(matched) == 1:
+        return next(iter(matched))
+    if len(matched) > 1:
+        return "Рынок"
     compact = re.search(r"\b([А-ЯЁ][А-Яа-яЁё-]{2,}банк)\b", text)
     if compact:
         return compact.group(1)
@@ -505,7 +591,7 @@ def _strip_channel_footer(text: str) -> str:
         value,
         flags=re.IGNORECASE,
     )
-    value = re.sub(r"\s+@(?:alfabank|sberbank)\s*$", "", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s+@[A-Za-z0-9_]{4,}\s*$", "", value, flags=re.IGNORECASE)
     return _clean_text(value)
 
 
@@ -572,7 +658,8 @@ def parse_telegram_listing(
         }
         if allowed_urls and url not in allowed_urls:
             continue
-        if not text or not url or not is_relevant(text, source.get("bank", "")):
+        bank = source.get("bank", "") or detect_bank(text)
+        if not text or not url or not bank or not is_relevant(text, bank):
             continue
         published = _published_from_markup(wrapper, now)
         if published is None:
@@ -586,9 +673,9 @@ def parse_telegram_listing(
             continue
         records.append(
             _make_record(
-                bank=source["bank"],
+                bank=bank,
                 published=published,
-                text=_premium_excerpt(text, source["bank"]),
+                text=_premium_excerpt(text, bank),
                 url=url,
                 source=source,
                 raw_text=raw_text[:1600],
@@ -610,11 +697,12 @@ def _make_record(
     event_type: str | None = None,
 ) -> dict:
     date_iso = published.strftime("%Y-%m-%d")
+    display_text = clean_news_text(_clean_text(text))
     return {
         "bank": bank,
         "dateLabel": _date_label(published),
         "dateSort": date_iso,
-        "text": _clean_text(text),
+        "text": display_text,
         "sourcePage": _canonical_url(url),
         "source_name": source["name"],
         "source_id": source["id"],
@@ -627,7 +715,7 @@ def _make_record(
         "raw_text": _clean_text(raw_text),
         "order": order,
         "record_id": _record_id(bank, url),
-        "event_type": event_type or classify_event(text),
+        "event_type": event_type or classify_event(display_text),
     }
 
 

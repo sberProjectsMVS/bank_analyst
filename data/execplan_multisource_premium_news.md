@@ -26,6 +26,10 @@ The monitor cannot guarantee coverage of every page on the internet. It provides
 - [x] (2026-07-28 10:35Z) Replaced the mistaken two-tab design with one complete chronological feed and bank/period/event-type filters; merged strict monitored records back with PBI and editorial changes.
 - [x] (2026-07-28 10:48Z) Expanded the official registry from newsrooms and Telegram to premium product landings and dated tariff/document links for the compared banks plus Ingo, Uralsib, Sovcombank, MKB, Bank DOM.RF, and Russian Standard.
 - [x] (2026-07-28 11:00Z) Re-ran live discovery across 36 registered sources, retained 13 strict monitored records, verified the VTB 31 July update in the unified feed, tested all filters and browser logs, rebuilt both landings, and published.
+- [x] (2026-07-29 00:00Z) Expanded the Telegram registry from the user-provided TrendsFactory examples, classified benefits/lifestyle/market/rumor items, detected banks per industry post, and rendered the landing as bank-ranked sections.
+- [x] (2026-07-29 00:00Z) Completed a live 51-source scan: 48 sources succeeded, 3 reported access failures, 32 monitored records were retained, both HTML outputs were rebuilt, and 32 focused tests passed.
+- [x] (2026-07-29 00:00Z) Replaced the bank-section interpretation with one global reverse-chronological feed embedded in the main landing; verified 84 cards, one timeline, no bank sections, and 32 passing focused tests.
+- [ ] Publish the rebuilt main landing after the user explicitly authorizes the configured workflow to commit, pull, and push the neighboring GitHub Pages repository.
 
 ## Surprises & Discoveries
 
@@ -64,6 +68,13 @@ The monitor cannot guarantee coverage of every page on the internet. It provides
   Evidence: the user-supplied Sber, Alfa, Gazprombank, and Ingo examples.
   Sentence-local matching rejects those false associations while retaining a
   real launch, an explicit condition update, or a new premium office.
+
+- Observation: The TrendsFactory examples expose repeated stories from
+  different Telegram channels and a much broader editorial scope than tariff
+  changes alone: benefits, customer events, brand lifestyle, and HNWI research.
+  Evidence: the user supplied examples from AlfaBank, Alfa Only, T-Bank,
+  PremiumBanking.info, Bankinform, Frank RG, BankBlog, Banksta, and lifestyle
+  channels on 2026-07-29.
 
 ## Decision Log
 
@@ -124,6 +135,29 @@ The monitor cannot guarantee coverage of every page on the internet. It provides
   control without hiding VTB or any other monitored record behind a tab.
   Date/Author: 2026-07-28 / Codex
 
+- Decision: Present the complete feed as bank sections ranked by newest
+  publication, then by event importance, while preserving bank/type/date
+  filters.
+  Rationale: The user wants a bank-oriented competitive radar. Grouping prevents
+  important condition changes from being lost in a single mixed timeline, while
+  the event priority keeps tariffs and conditions above lifestyle material.
+  Date/Author: 2026-07-29 / Codex
+
+- Decision: Supersede the bank-section layout with one reverse-chronological
+  feed across all banks, retaining bank/type/date filters.
+  Rationale: The user clarified that reading every old item for one bank before
+  reaching a new item from another bank is unusable. The main landing must show
+  all news in time order and must not introduce a new destination.
+  Date/Author: 2026-07-29 / Codex
+
+- Decision: Industry Telegram channels do not supply a bank identity by
+  themselves. Each accepted post must name a recognized bank or package; an
+  ambiguous premium-service brand remains excluded.
+  Rationale: This preserves SOURCE_POLICY.md strict bank binding and prevents
+  SimplePrivé or other shared service brands from being silently assigned to
+  the wrong bank.
+  Date/Author: 2026-07-29 / Codex
+
 ## Outcomes & Retrospective
 
 The multi-source monitor is operational and published. Normal scans now check the
@@ -150,6 +184,18 @@ incomplete response). Other official sources for those banks remain registered
 and successful where available. Twenty-seven focused tests pass, the VTB filter
 shows only nine VTB cards, the document filter shows only document cards, and
 the browser console is clean.
+
+The 2026-07-29 extension adds the user-provided Telegram source families and
+renders one newest-first feed in the main landing with filters for bank, period,
+and event type.
+Official sources remain visibly distinguished from industry sources. Multi-bank
+roundups are assigned to `Рынок` instead of being falsely attributed to the
+first bank mentioned, and unconfirmed reports have their own `Не подтверждено`
+label. The live scan retained 32 monitored records from 48 successful sources;
+three bank pages remained unavailable because of HTTP access restrictions. The
+standalone and embedded HTML files were rebuilt locally. Publication remains
+pending because the configured publisher would commit, pull, and push a
+neighboring GitHub Pages repository and requires explicit user authorization.
 
 ## Context and Orientation
 
@@ -245,3 +291,12 @@ with the requested single complete feed. Added filters and official landing/
 document discovery, expanded coverage to five additional Russian premium banks,
 restored the full VTB update to the default view, and published after live and
 visual validation.
+
+Plan update note (2026-07-29): Began the bank-ranked Telegram expansion from the
+user's TrendsFactory examples. The change keeps source text and provenance,
+adds no inferred tariff facts, and treats ambiguous service-only mentions as
+unassigned rather than guessing a bank.
+
+Plan update note (2026-07-29): Corrected the UI interpretation after user
+feedback: the news remains inside the main landing as one newest-first stream;
+bank grouping is available only as a filter, not as sequential sections.

@@ -363,10 +363,10 @@ class PremiumStructuredTests(unittest.TestCase):
         self.assertNotIn("зп", summary.lower())
 
         vtb = curated_for("vtb_privilege_1")["entry_conditions"]
-        self.assertIn("зарплата 300 тыс ₽", vtb["value"])
-        self.assertIn("зарплата 700 тыс ₽", vtb["value"])
-        self.assertIn("три полных последовательных", vtb["value"])
-        self.assertIn("vtb.ru/privilegia", vtb["source_url"])
+        self.assertIn("Изумруд", vtb["value"])
+        self.assertIn("до 2,5 млн ₽", vtb["value"])
+        self.assertIn("до 2 млн ₽", vtb["value"])
+        self.assertIn("vtb.ru/promo/rsvtb-pv-2", vtb["source_url"])
 
         expected = {
             "tbank_silver": "зарплата 400 тыс ₽",

@@ -51,6 +51,16 @@ class EditorialNewsTests(unittest.TestCase):
         self.assertEqual(len(changes), 2)
         self.assertEqual(duplicates, 1)
 
+    def test_editorial_news_strips_emoji_and_smileys(self):
+        changes, duplicates = parse_editorial_csv(
+            "Банк,Дата,Новость,Источник\n"
+            'ВТБ,2026-07-29,"🚀 Улучшены условия Привилегии :)",'
+            "https://www.vtb.ru/news/\n"
+        )
+
+        self.assertEqual(duplicates, 0)
+        self.assertEqual(changes[0]["text"], "Улучшены условия Привилегии")
+
     def test_incomplete_row_rejects_entire_import(self):
         with self.assertRaisesRegex(EditorialNewsError, "Строка 2"):
             parse_editorial_csv(

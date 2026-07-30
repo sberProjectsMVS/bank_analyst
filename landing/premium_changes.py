@@ -13,6 +13,7 @@ import requests
 from bs4 import BeautifulSoup, Tag
 
 from scanner.editorial_news import load_editorial_news
+from scanner.news_text import clean_news_text
 from scanner.premium_news import load_monitored_premium_news
 from scanner.sources import PRIORITY_SOURCE_URLS
 
@@ -109,6 +110,7 @@ def collect_premium_updates() -> tuple[list[dict], int]:
     editorial_changes, editorial_status = load_editorial_news(sync=True)
     changes.extend(editorial_changes)
     changes.extend(load_monitored_premium_news())
+    changes = [_clean_news_record(item) for item in changes]
     changes = _deduplicate_changes(changes)
     changes.sort(
         key=lambda item: (item.get("dateSort", ""), -int(item.get("order", 0))),
@@ -121,7 +123,7 @@ def collect_premium_updates() -> tuple[list[dict], int]:
 
 def load_all_news() -> list[dict]:
     """Return monitored premium-banking news as one chronological stream."""
-    news = load_monitored_premium_news()
+    news = [_clean_news_record(item) for item in load_monitored_premium_news()]
     news.sort(
         key=lambda item: (item.get("dateSort", ""), -int(item.get("order", 0))),
         reverse=True,
@@ -142,13 +144,24 @@ def _deduplicate_changes(changes: list[dict]) -> list[dict]:
         key = (
             item.get("bank", "").casefold(),
             item.get("dateSort", ""),
-            re.sub(r"\W+", " ", item.get("text", "").casefold()).strip(),
+            re.sub(
+                r"\W+",
+                " ",
+                clean_news_text(item.get("text", "")).casefold(),
+            ).strip(),
         )
         if key in seen:
             continue
         seen.add(key)
         result.append(item)
     return result
+
+
+def _clean_news_record(item: dict) -> dict:
+    """Return a display-safe copy while keeping cached source files untouched."""
+    cleaned = dict(item)
+    cleaned["text"] = clean_news_text(str(item.get("text", "")))
+    return cleaned
 
 
 def fetch_pbi_updates(fetcher=None) -> tuple[list[dict], int]:
@@ -300,7 +313,9 @@ def render_changes_app(
     <section class="changes-app">
     <header class="changes-top">
       <p class="eyebrow">Мониторинг премиального банкинга</p>
-      <h1>Последние изменения</h1>
+      <h1>Новости премиального банкинга</h1>
+      <p class="updated">Единая лента: самые свежие публикации всех банков
+      показаны первыми.</p>
       <div class="changes-stats">
         <span><b>{len(bank_names)}</b> банков</span>
         <span><b>{len(feed)}</b> публикаций</span>
@@ -373,7 +388,7 @@ def _render_change(change: dict) -> str:
               <span>{_esc(change.get('dateLabel', ''))}</span>
               {source_badge}
             </div>
-            <p>{_esc(change.get('text', ''))}</p>
+            <p>{_esc(clean_news_text(change.get('text', '')))}</p>
             <a href="{_esc(source_url)}" target="_blank" rel="noreferrer">Источник</a>
           </article>"""
 
@@ -382,10 +397,12 @@ EVENT_TYPE_LABELS = {
     "conditions": "Изменение условий",
     "launch": "Запуск продукта",
     "document": "Новый тариф или документ",
-    "event": "Событие для клиентов",
+    "benefit": "Новая привилегия",
+    "lifestyle": "Lifestyle и событие",
+    "market": "Исследование рынка",
+    "rumor": "Не подтверждено",
     "news": "Другая новость",
 }
-
 
 def _event_type(change: dict) -> str:
     value = change.get("event_type")
@@ -416,7 +433,7 @@ def _render_feed_item(change: dict) -> str:
               <span class="event-type">{_esc(EVENT_TYPE_LABELS[event_type])}</span>
               <span class="change-source-kind">{_esc(source_label)}</span>
             </div>
-            <p>{_esc(change.get('text', ''))}</p>
+            <p>{_esc(clean_news_text(change.get('text', '')))}</p>
             <a href="{_esc(_source_button_url(change))}" target="_blank"
                 rel="noreferrer">Источник</a>
           </article>"""
@@ -457,7 +474,7 @@ def _news_text(node: Tag) -> str:
     for link in node.find_all("a"):
         if _clean_text(link.get_text(" ", strip=True)).lower() == "подробнее":
             link.decompose()
-    text = _clean_text(node.get_text(" ", strip=True))
+    text = clean_news_text(_clean_text(node.get_text(" ", strip=True)))
     text = re.sub(r"\s+\.", ".", text)
     return re.sub(r"\.{2,}", ".", text)
 

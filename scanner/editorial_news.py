@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 
 import requests
 
+from scanner.news_text import clean_news_text
 
 LOGGER = logging.getLogger(__name__)
 
@@ -139,6 +140,12 @@ def parse_editorial_csv(csv_text: str) -> tuple[list[dict], int]:
             )
         parsed_date = _parse_date(raw_date, row_number)
         source_url = _validate_source_url(raw_source, row_number)
+        text = clean_news_text(text)
+        if not text:
+            raise EditorialNewsError(
+                f"Строка {row_number}: поле «Новость» не должно состоять "
+                "только из эмодзи или смайликов"
+            )
         date_iso = parsed_date.strftime("%Y-%m-%d")
         record_id = _fingerprint(bank, date_iso, text, source_url)
         if record_id in seen:

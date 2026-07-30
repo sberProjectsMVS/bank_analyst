@@ -509,12 +509,14 @@ _VTB_SERVICES = "https://www.vtb.ru/privilegia/premialnye-servisy/"
 _VTB_CARD = ("https://www.vtb.ru/privilegia/karty/debetovye/"
              "privilegiya-mir-supreme/")
 _VTB_MAIN = "https://www.vtb.ru/privilegia/"
+_VTB_UPDATE_2026 = "https://www.vtb.ru/promo/rsvtb-pv-2/"
 _VTB_SBP = "https://www.vtb.ru/personal/online-servisy/perevody-sbp/"
 _VTB_RKO_TARIFF = (
     "https://www.vtb.ru/media-files/vtb.ru/sitepages/tarify/"
     "chastnim-licam/t_rko.xlsx"
 )
 _VTB_CHECKED = "2026-07-15"
+_VTB_UPDATE_CHECKED = "2026-07-28"
 
 _VTB_PRIVILEGE_1_ENTRY = _fact(
     "3 990 ₽ в месяц; или траты 150 тыс ₽ в месяц; или зарплата 300 тыс ₽ "
@@ -534,6 +536,107 @@ _VTB_CASHBACK = _fact(
     "Официальная страница карты ВТБ «Привилегия Mir Supreme»: кэшбэк "
     "рублями до 30 000 ₽, 3 категории из 9 + 1 для зарплатных клиентов",
     _VTB_CHECKED)
+
+_VTB_PRIVILEGE_CASHBACK_2026 = _fact(
+    "С 31 июля 2026 года — 5 категорий кэшбэка вместо 3; категории "
+    "выбираются ежемесячно с 26-го числа в разделе «Расти с ВТБ», "
+    "максимальный кэшбэк — до 30 000 ₽ в месяц. Первый выбор пяти "
+    "категорий откроется 26 августа",
+    _VTB_UPDATE_2026,
+    "Официальный лендинг обновления ВТБ «Привилегия»; изменение относится "
+    "к четырём уровням Привилегии, но не переносится на Prime+",
+    date_checked=_VTB_UPDATE_CHECKED)
+
+_VTB_LEVEL_ENTRIES_2026 = {
+    "vtb_privilege_1": _fact(
+        "Уровень «Изумруд» с 31 июля 2026 года: активы в ВТБ до 2,5 млн ₽ "
+        "для Москвы и Московской области; до 2 млн ₽ для других регионов",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+    "vtb_privilege_2": _fact(
+        "Уровень «Сапфир» с 31 июля 2026 года. Москва и Московская область: "
+        "активы от 2,5 млн ₽ либо активы от 1,5 млн ₽ и покупки картой "
+        "от 125 000 ₽ в месяц. Другие регионы: активы от 2 млн ₽ либо "
+        "активы от 1,5 млн ₽ и покупки картой от 100 000 ₽ в месяц",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+    "vtb_privilege_3": _fact(
+        "Уровень «Рубин» с 31 июля 2026 года: активы в ВТБ от 6 млн ₽ "
+        "для Москвы, Московской области и других регионов",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+    "vtb_privilege_4": _fact(
+        "Уровень «Бриллиант» с 31 июля 2026 года: активы в ВТБ от 10 млн ₽ "
+        "для Москвы, Московской области и других регионов",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+}
+
+
+def _vtb_preference_fields_2026(monthly_count: int) -> dict:
+    timing = (
+        "Новые правила действуют с 31 июля 2026 года; первое начисление "
+        "по ним — 1 сентября за период 31 июля — 30 августа"
+    )
+    preference_word = "преференции" if monthly_count == 2 else "преференций"
+    pool = (
+        f"{monthly_count} {preference_word} в месяц из общего баланса; "
+        "1 преференция = 1 использование выбранного сервиса"
+    )
+    return {
+        "lounge_access": _fact(
+            f"До {monthly_count} проходов в месяц, если направить весь общий "
+            f"баланс ({pool}) на бизнес-залы. Более 900 бизнес-залов в "
+            "аэропортах и на вокзалах через ON·PASS и ON·PASS PREMIUM",
+            _VTB_UPDATE_2026,
+            f"{timing}; проходы делят баланс с такси, ресторанами, упаковкой "
+            "багажа и приоритетной регистрацией",
+            date_checked=_VTB_UPDATE_CHECKED),
+        "taxi": _fact(
+            f"До {monthly_count} компенсаций поездок на такси в месяц; "
+            "до 1 000 ₽ за один чек. Используется общий баланс: "
+            f"{pool}; поездки делят его с другими сервисами",
+            _VTB_UPDATE_2026,
+            f"{timing}; отдельный годовой лимит на лендинге обновления "
+            "не опубликован",
+            date_checked=_VTB_UPDATE_CHECKED),
+        "restaurants": _fact(
+            f"До {monthly_count} компенсаций чеков в ресторанах аэропортов "
+            "России в месяц; до 2 500 ₽ за один чек. Используется общий "
+            f"баланс: {pool}; рестораны делят его с другими сервисами",
+            _VTB_UPDATE_2026,
+            f"{timing}; отдельный годовой лимит на лендинге обновления "
+            "не опубликован",
+            date_checked=_VTB_UPDATE_CHECKED),
+        "selectable_options": _fact(
+            "Преференции на выбор: бизнес-залы ON·PASS и ON·PASS PREMIUM | "
+            "такси до 1 000 ₽ за чек | рестораны аэропортов РФ до 2 500 ₽ "
+            "за чек | упаковка багажа | приоритетная регистрация в аэропорту",
+            _VTB_UPDATE_2026,
+            timing,
+            date_checked=_VTB_UPDATE_CHECKED),
+        "selection_rules": _fact(
+            f"{pool}. Проверка условий — с последнего дня предыдущего месяца "
+            "по предпоследний день текущего; начисление — 1-го числа; "
+            "использовать преференции можно до конца месяца начисления",
+            _VTB_UPDATE_2026,
+            timing,
+            date_checked=_VTB_UPDATE_CHECKED),
+        "last_change_date": _fact(
+            "31.07.2026 — запуск уровней «Расти с ВТБ»; первое назначение "
+            "уровня и начисление преференций — 01.09.2026",
+            _VTB_UPDATE_2026,
+            timing,
+            date_checked=_VTB_UPDATE_CHECKED),
+    }
 
 _VTB_DEPOSITS = _fact(
     "Накопительный ВТБ-Счёт до 13,6% годовых; повышенная ставка за "
@@ -561,7 +664,7 @@ _VTB_PRIVILEGE_SHARED = {
         "«Привилегии»: юридическая, деловая и медицинская поддержка, "
         "путешествия/досуг, детский консьерж",
         _VTB_SERVICES, ""),
-    "cashback": _VTB_CASHBACK,
+    "cashback": _VTB_PRIVILEGE_CASHBACK_2026,
     "deposits": _VTB_DEPOSITS,
     "transfers_payments": _VTB_PRIVILEGE_TRANSFERS,
     "card_terms": _fact(
@@ -1104,21 +1207,33 @@ _COMPETITOR_FACTS = {
     # ----- ВТБ: Привилегия 1–4; Prime+ получает только общие банковские
     # условия ВТБ по карте/сбережениям, явно опубликованные на официальных
     # страницах ВТБ. Не переносить сюда уникальные сервисы без tier-source.
-    "vtb_privilege_1": {**_VTB_PRIVILEGE_SHARED,
-                        "entry_conditions": _VTB_PRIVILEGE_1_ENTRY,
-                        "addons": _fact(
-                            "— (механика выбора привилегий на уровне 1 не "
-                            "заявлена на странице уровня; появляется с "
-                            "уровней выше)",
-                            "https://premiumbanking.info/vtb/1",
-                            "Отсутствие по структуре условий уровня")},
+    "vtb_privilege_1": {
+        **_VTB_PRIVILEGE_SHARED,
+        "entry_conditions": _VTB_LEVEL_ENTRIES_2026["vtb_privilege_1"],
+        "last_change_date": _fact(
+            "31.07.2026 — запуск уровней «Расти с ВТБ»; первое назначение "
+            "уровня — 01.09.2026",
+            _VTB_UPDATE_2026,
+            "Официальный лендинг не публикует количество преференций для "
+            "уровня «Изумруд», поэтому оно не добавлено в curated-данные",
+            date_checked=_VTB_UPDATE_CHECKED),
+    },
     "vtb_privilege_2": {**_VTB_PRIVILEGE_SHARED,
+                        "entry_conditions":
+                            _VTB_LEVEL_ENTRIES_2026["vtb_privilege_2"],
+                        **_vtb_preference_fields_2026(2),
                         "service_cost": _free_on_conditions(
                             "https://premiumbanking.info/vtb/2")},
     "vtb_privilege_3": {**_VTB_PRIVILEGE_SHARED,
+                        "entry_conditions":
+                            _VTB_LEVEL_ENTRIES_2026["vtb_privilege_3"],
+                        **_vtb_preference_fields_2026(6),
                         "service_cost": _free_on_conditions(
                             "https://premiumbanking.info/vtb/3")},
     "vtb_privilege_4": {**_VTB_PRIVILEGE_SHARED,
+                        "entry_conditions":
+                            _VTB_LEVEL_ENTRIES_2026["vtb_privilege_4"],
+                        **_vtb_preference_fields_2026(10),
                         "service_cost": _free_on_conditions(
                             "https://premiumbanking.info/vtb/4")},
     "vtb_prime_5": {

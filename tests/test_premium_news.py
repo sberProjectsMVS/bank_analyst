@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from landing import premium_changes
 from scanner.premium_news import (
+    classify_event,
     detect_bank,
     is_relevant,
     load_monitored_premium_news,
@@ -18,6 +19,7 @@ from scanner.premium_news import (
     parse_telegram_listing,
     sync_premium_news_sources,
 )
+from scanner.news_text import clean_news_text
 
 
 OFFICIAL_SOURCE = {
@@ -43,6 +45,39 @@ class FakeResponse:
 
 
 class PremiumNewsTests(unittest.TestCase):
+    def test_news_text_removes_emoji_and_typed_smileys(self):
+        raw = (
+            "⭐️ Обновили условия 😊: кэшбэк 15% — до 5 000 ₽ :) "
+            "Время 10:30. Спасибо)) ✈️"
+        )
+
+        self.assertEqual(
+            clean_news_text(raw),
+            "Обновили условия: кэшбэк 15% — до 5 000 ₽ "
+            "Время 10:30. Спасибо",
+        )
+
+    def test_render_removes_emoji_from_existing_cached_news(self):
+        records = [{
+            "bank": "ВТБ",
+            "dateSort": "2026-07-29",
+            "dateLabel": "июл 2026",
+            "text": "Улучшили Привилегию 🚀 :)",
+            "event_type": "conditions",
+            "sourcePage": "https://example.test/vtb",
+            "source_type": "official",
+            "order": 1,
+        }]
+
+        html = premium_changes.render_changes_app(
+            premium_changes.group_by_bank(records),
+            datetime(2026, 7, 29),
+        )
+
+        self.assertIn("Улучшили Привилегию", html)
+        self.assertNotIn("🚀", html)
+        self.assertNotIn(":)", html)
+
     def test_named_packages_are_recognized_without_word_premium(self):
         examples = (
             ("Сбер", "СберПервый обновляет условия доступа в бизнес-залы"),
@@ -142,6 +177,22 @@ class PremiumNewsTests(unittest.TestCase):
 
         self.assertEqual(bank, "Совкомбанк")
         self.assertTrue(is_relevant(title, bank))
+
+    def test_multi_bank_roundup_is_ranked_as_market_not_first_named_bank(self):
+        text = (
+            "МТС Банк добавил пакет для премиальных клиентов. "
+            "Сбер и ВТБ также изменили свои программы."
+        )
+
+        self.assertEqual(detect_bank(text), "Рынок")
+
+    def test_unconfirmed_report_is_visibly_classified_as_rumor(self):
+        self.assertEqual(
+            classify_event(
+                "По слухам, Сбер изменит премиальные тарифы без подтверждающих документов"
+            ),
+            "rumor",
+        )
 
     def test_unrelated_branded_premium_subscription_is_rejected(self):
         self.assertFalse(
@@ -290,6 +341,95 @@ class PremiumNewsTests(unittest.TestCase):
             )
         )
 
+    def test_industry_telegram_detects_bank_for_each_post(self):
+        source = {
+            **OFFICIAL_SOURCE,
+            "id": "industry_telegram",
+            "name": "Профильный канал",
+            "bank_id": "",
+            "bank": "",
+            "source_type": "industry",
+            "kind": "telegram",
+            "url": "https://t.me/s/example",
+        }
+        page = """
+        <div class="tgme_widget_message_wrap">
+          <div class="tgme_widget_message_text">
+            Альфа-Банк: для клиентов Alfa Only появился кешбэк 15%
+          </div>
+          <a class="tgme_widget_message_date"
+             href="https://t.me/example/10">
+            <time datetime="2026-07-28T10:00:00+00:00"></time>
+          </a>
+        </div>
+        """
+
+        records = parse_telegram_listing(
+            page,
+            source,
+            now=datetime(2026, 7, 28),
+        )
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["bank"], "Альфа-Банк")
+        self.assertEqual(records[0]["source_type"], "industry")
+        self.assertEqual(records[0]["event_type"], "benefit")
+
+    def test_premium_benefit_and_lifestyle_categories_are_separate(self):
+        self.assertTrue(
+            is_relevant(
+                "Для клиентов Alfa Only действует кешбэк 15% в NO ONE",
+                "Альфа-Банк",
+            )
+        )
+        self.assertEqual(
+            classify_event("Для клиентов Alfa Only действует кешбэк 15%"),
+            "benefit",
+        )
+        self.assertEqual(
+            classify_event(
+                "T-Premium организовал мастер-класс для клиентов в Москве"
+            ),
+            "lifestyle",
+        )
+
+    def test_landing_is_one_chronological_feed_across_banks(self):
+        records = [
+            {
+                "bank": "Альфа-Банк",
+                "dateSort": "2026-07-28",
+                "dateLabel": "июл 2026",
+                "text": "Alfa Only организовал мероприятие",
+                "event_type": "lifestyle",
+                "sourcePage": "https://example.test/alfa",
+                "source_type": "official",
+                "order": 1,
+            },
+            {
+                "bank": "Т-Банк",
+                "dateSort": "2026-07-29",
+                "dateLabel": "июл 2026",
+                "text": "T-Premium изменил доступ в бизнес-залы",
+                "event_type": "conditions",
+                "sourcePage": "https://example.test/tbank",
+                "source_type": "official",
+                "order": 1,
+            },
+        ]
+
+        html = premium_changes.render_changes_app(
+            premium_changes.group_by_bank(records),
+            datetime(2026, 7, 29),
+        )
+
+        self.assertNotIn("js-change-bank-group", html)
+        self.assertEqual(html.count("js-change-card"), 2)
+        self.assertLess(
+            html.index('data-bank="Т-Банк"'),
+            html.index('data-bank="Альфа-Банк"'),
+        )
+        self.assertIn("Единая лента", html)
+
     def test_long_story_is_trimmed_to_premium_conditions(self):
         source = {
             **OFFICIAL_SOURCE,
@@ -325,6 +465,38 @@ class PremiumNewsTests(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertTrue(records[0]["text"].startswith("Обновили условия"))
         self.assertNotIn("Личная история", records[0]["text"])
+
+    def test_telegram_display_text_strips_emoji_but_keeps_raw_evidence(self):
+        source = {
+            **OFFICIAL_SOURCE,
+            "id": "vtb_emoji_test",
+            "name": "ВТБ",
+            "bank_id": "vtb",
+            "bank": "ВТБ",
+            "kind": "telegram",
+            "url": "https://t.me/s/vtb",
+        }
+        page = """
+        <div class="tgme_widget_message_wrap">
+          <div class="tgme_widget_message_text">
+            🚀 ВТБ улучшил условия Привилегии: теперь 5 категорий кэшбэка :)
+          </div>
+          <a class="tgme_widget_message_date" href="https://t.me/vtb/100">
+            <time datetime="2026-07-29T10:00:00+00:00"></time>
+          </a>
+        </div>
+        """
+
+        records = parse_telegram_listing(
+            page,
+            source,
+            now=datetime(2026, 7, 29),
+        )
+
+        self.assertEqual(len(records), 1)
+        self.assertNotIn("🚀", records[0]["text"])
+        self.assertNotIn(":)", records[0]["text"])
+        self.assertIn("🚀", records[0]["raw_text"])
 
     def test_listing_keeps_premium_change_and_rejects_unrelated_news(self):
         page = """
