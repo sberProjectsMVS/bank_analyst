@@ -509,7 +509,14 @@ _VTB_SERVICES = "https://www.vtb.ru/privilegia/premialnye-servisy/"
 _VTB_CARD = ("https://www.vtb.ru/privilegia/karty/debetovye/"
              "privilegiya-mir-supreme/")
 _VTB_MAIN = "https://www.vtb.ru/privilegia/"
+_VTB_UPDATE_2026 = "https://www.vtb.ru/promo/rsvtb-pv-2/"
+_VTB_SBP = "https://www.vtb.ru/personal/online-servisy/perevody-sbp/"
+_VTB_RKO_TARIFF = (
+    "https://www.vtb.ru/media-files/vtb.ru/sitepages/tarify/"
+    "chastnim-licam/t_rko.xlsx"
+)
 _VTB_CHECKED = "2026-07-15"
+_VTB_UPDATE_CHECKED = "2026-07-28"
 
 _VTB_PRIVILEGE_1_ENTRY = _fact(
     "3 990 ₽ в месяц; или траты 150 тыс ₽ в месяц; или зарплата 300 тыс ₽ "
@@ -530,6 +537,107 @@ _VTB_CASHBACK = _fact(
     "рублями до 30 000 ₽, 3 категории из 9 + 1 для зарплатных клиентов",
     _VTB_CHECKED)
 
+_VTB_PRIVILEGE_CASHBACK_2026 = _fact(
+    "С 31 июля 2026 года — 5 категорий кэшбэка вместо 3; категории "
+    "выбираются ежемесячно с 26-го числа в разделе «Расти с ВТБ», "
+    "максимальный кэшбэк — до 30 000 ₽ в месяц. Первый выбор пяти "
+    "категорий откроется 26 августа",
+    _VTB_UPDATE_2026,
+    "Официальный лендинг обновления ВТБ «Привилегия»; изменение относится "
+    "к четырём уровням Привилегии, но не переносится на Prime+",
+    date_checked=_VTB_UPDATE_CHECKED)
+
+_VTB_LEVEL_ENTRIES_2026 = {
+    "vtb_privilege_1": _fact(
+        "Уровень «Изумруд» с 31 июля 2026 года: активы в ВТБ до 2,5 млн ₽ "
+        "для Москвы и Московской области; до 2 млн ₽ для других регионов",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+    "vtb_privilege_2": _fact(
+        "Уровень «Сапфир» с 31 июля 2026 года. Москва и Московская область: "
+        "активы от 2,5 млн ₽ либо активы от 1,5 млн ₽ и покупки картой "
+        "от 125 000 ₽ в месяц. Другие регионы: активы от 2 млн ₽ либо "
+        "активы от 1,5 млн ₽ и покупки картой от 100 000 ₽ в месяц",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+    "vtb_privilege_3": _fact(
+        "Уровень «Рубин» с 31 июля 2026 года: активы в ВТБ от 6 млн ₽ "
+        "для Москвы, Московской области и других регионов",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+    "vtb_privilege_4": _fact(
+        "Уровень «Бриллиант» с 31 июля 2026 года: активы в ВТБ от 10 млн ₽ "
+        "для Москвы, Московской области и других регионов",
+        _VTB_UPDATE_2026,
+        "Первый уровень будет назначен 1 сентября по оценке периода "
+        "31 июля — 30 августа",
+        date_checked=_VTB_UPDATE_CHECKED),
+}
+
+
+def _vtb_preference_fields_2026(monthly_count: int) -> dict:
+    timing = (
+        "Новые правила действуют с 31 июля 2026 года; первое начисление "
+        "по ним — 1 сентября за период 31 июля — 30 августа"
+    )
+    preference_word = "преференции" if monthly_count == 2 else "преференций"
+    pool = (
+        f"{monthly_count} {preference_word} в месяц из общего баланса; "
+        "1 преференция = 1 использование выбранного сервиса"
+    )
+    return {
+        "lounge_access": _fact(
+            f"До {monthly_count} проходов в месяц, если направить весь общий "
+            f"баланс ({pool}) на бизнес-залы. Более 900 бизнес-залов в "
+            "аэропортах и на вокзалах через ON·PASS и ON·PASS PREMIUM",
+            _VTB_UPDATE_2026,
+            f"{timing}; проходы делят баланс с такси, ресторанами, упаковкой "
+            "багажа и приоритетной регистрацией",
+            date_checked=_VTB_UPDATE_CHECKED),
+        "taxi": _fact(
+            f"До {monthly_count} компенсаций поездок на такси в месяц; "
+            "до 1 000 ₽ за один чек. Используется общий баланс: "
+            f"{pool}; поездки делят его с другими сервисами",
+            _VTB_UPDATE_2026,
+            f"{timing}; отдельный годовой лимит на лендинге обновления "
+            "не опубликован",
+            date_checked=_VTB_UPDATE_CHECKED),
+        "restaurants": _fact(
+            f"До {monthly_count} компенсаций чеков в ресторанах аэропортов "
+            "России в месяц; до 2 500 ₽ за один чек. Используется общий "
+            f"баланс: {pool}; рестораны делят его с другими сервисами",
+            _VTB_UPDATE_2026,
+            f"{timing}; отдельный годовой лимит на лендинге обновления "
+            "не опубликован",
+            date_checked=_VTB_UPDATE_CHECKED),
+        "selectable_options": _fact(
+            "Преференции на выбор: бизнес-залы ON·PASS и ON·PASS PREMIUM | "
+            "такси до 1 000 ₽ за чек | рестораны аэропортов РФ до 2 500 ₽ "
+            "за чек | упаковка багажа | приоритетная регистрация в аэропорту",
+            _VTB_UPDATE_2026,
+            timing,
+            date_checked=_VTB_UPDATE_CHECKED),
+        "selection_rules": _fact(
+            f"{pool}. Проверка условий — с последнего дня предыдущего месяца "
+            "по предпоследний день текущего; начисление — 1-го числа; "
+            "использовать преференции можно до конца месяца начисления",
+            _VTB_UPDATE_2026,
+            timing,
+            date_checked=_VTB_UPDATE_CHECKED),
+        "last_change_date": _fact(
+            "31.07.2026 — запуск уровней «Расти с ВТБ»; первое назначение "
+            "уровня и начисление преференций — 01.09.2026",
+            _VTB_UPDATE_2026,
+            timing,
+            date_checked=_VTB_UPDATE_CHECKED),
+    }
+
 _VTB_DEPOSITS = _fact(
     "Накопительный ВТБ-Счёт до 13,6% годовых; повышенная ставка за "
     "покупки по дебетовой карте, проценты начисляются на минимальный / "
@@ -539,14 +647,26 @@ _VTB_DEPOSITS = _fact(
     "накопительному ВТБ-Счёту до 13,6%",
     _VTB_CHECKED)
 
+_VTB_PRIVILEGE_TRANSFERS = _fact(
+    "Переводы через СБП на счета третьих лиц — без комиссии: до 1 млн ₽ "
+    "за один перевод и в сутки, до 10 млн ₽ в месяц. Переводы через СБП "
+    "на свои счета в других банках — без комиссии до 30 млн ₽ в месяц",
+    _VTB_SBP,
+    "Официальная страница СБП ВТБ: отдельная стоимость для владельцев ПУ "
+    "«Привилегия Мультикарта» и операционные лимиты. Перепроверено по "
+    f"официальному сборнику РКО {_VTB_RKO_TARIFF}: раздел 3, пп. "
+    "3.1.4.1.1 и 3.1.4.2.3",
+    date_checked="2026-07-24")
+
 _VTB_PRIVILEGE_SHARED = {
     "concierge": _fact(
         "Есть — круглосуточный консьерж-сервис, бесплатно для всех клиентов "
         "«Привилегии»: юридическая, деловая и медицинская поддержка, "
         "путешествия/досуг, детский консьерж",
         _VTB_SERVICES, ""),
-    "cashback": _VTB_CASHBACK,
+    "cashback": _VTB_PRIVILEGE_CASHBACK_2026,
     "deposits": _VTB_DEPOSITS,
+    "transfers_payments": _VTB_PRIVILEGE_TRANSFERS,
     "card_terms": _fact(
         "Карта «Привилегия Mir Supreme» (есть цифровая версия). Снятие без "
         "комиссии в банкоматах ВТБ и партнёров группы: до 350 000 ₽/день, "
@@ -564,6 +684,14 @@ _VTB_PRIVILEGE_SHARED = {
         "поддержка (для поездок на личном автомобиле)",
         _VTB_SERVICES, ""),
 }
+
+_VTB_PRIME_CONCIERGE = _fact(
+    "АМА консьерж включён в пакет Прайм+ и доступен круглосуточно (24/7)",
+    f"{_VTB_MAIN}; https://premiumbanking.info/vtb",
+    "Страницы каждого уровня Прайм+ подтверждают АМА консьерж в составе "
+    "привилегий; официальный сайт ВТБ описывает консьерж-сервис как помощь "
+    "24/7",
+    date_checked="2026-07-24")
 
 # ---------- Озон Банк (Ultra) ----------
 _OZON_PRODUCTS = "https://finance.ozon.ru/products"
@@ -643,8 +771,22 @@ _OZONBANK_SHARED = {
 
 # ---------- Газпромбанк ----------
 _GPB_BONUS = "https://www.gazprombank.ru/premium/gazprom-bonus/"
-_GPB_PREMIUM = "https://www.gazprombank.ru/premium/"
+_GPB_PREMIUM = "https://www.gazprombank.ru/premium/special/pu-premium/"
+_GPB_PREMIUM_TARIFF = (
+    "https://www.gazprombank.ru/upload/files/iblock/e97/"
+    "h038o8uoge7g8zucvs80yz2sy8r9gejz/"
+    "Tarif-Gazprombank.Premium-s-22.07.2026.pdf"
+)
+_GPB_PREMIUM_CASHBACK = (
+    "https://www.gazprombank.ru/upload/files/iblock/474/"
+    "102zjqtow8yzfiixl6bvikr0khvb3g51/"
+    "Programma-loyalnosti-Banka-GPB-_AO_-po-nachisleniyu-keshbeka-"
+    "_deystvuet-s-01.06.2026_.pdf"
+)
 _GPB_PRIVATE = "https://www.gazprombank.ru/private/"
+_GPB_PRIVATE_PACKAGE = "https://www.gazprombank.ru/private/package-of-services/"
+_GPB_PRIVATE_TRANSFERS = "https://www.gazprombank.ru/download/8091775/"
+_GPB_PRIVATE_DEPOSITS_PAGE = "https://www.gazprombank.ru/private/deposits/"
 
 _GPB_PREMIUM_1_ENTRY = _fact(
     "2,5 млн ₽ среднемесячных остатков; или траты 150 тыс ₽ в месяц; или "
@@ -668,30 +810,85 @@ _GPB_PREMIUM_DEPOSITS = _fact(
     "Официальная страница премиальной карты Газпромбанка")
 
 _GPB_PREMIUM_TRANSFERS = _fact(
-    "Переводы по номеру телефона бесплатно до 200 000 ₽; переводы по номеру "
-    "карты бесплатно до 50 000 ₽",
+    "Переводы другим людям в любые банки РФ через СБП бесплатно до "
+    "200 000 ₽ в месяц; переводы по номеру карты бесплатно до 50 000 ₽ "
+    "в месяц. Общий технический лимит переводов через СБП или по номеру "
+    "карты — до 10 млн ₽ в месяц",
     _GPB_PREMIUM,
-    "Официальный блок «Короткие тарифы» премиальной карты Газпромбанка")
+    "Официальная страница премиальной карты Газпромбанка; бесплатные лимиты "
+    "и общий операционный лимит показаны раздельно",
+    date_checked="2026-07-24")
 
 _GPB_PREMIUM_CASH = _fact(
-    "Снятие наличных бесплатно при выполнении условий тарифа",
-    _GPB_PREMIUM,
-    "Официальный блок «Короткие тарифы» премиальной карты Газпромбанка")
+    "При выполнении условий пакета снятие наличных без комиссии в банкоматах "
+    "и пунктах выдачи наличных Газпромбанка и сторонних банков в России и "
+    "за рубежом. Без выполнения условий: в Газпромбанке до 1 000 000 ₽ в "
+    "месяц бесплатно; в сторонних банках России до 100 000 ₽ в месяц "
+    "бесплатно; за рубежом — 450 ₽ за операцию",
+    _GPB_PREMIUM_TARIFF,
+    "Официальный тариф пакета с 22.07.2026, раздел III, пункты 4.1–4.4",
+    date_checked="2026-07-24")
 
 _GPB_PREMIUM_SUPREME = _fact(
     "Премиальная карта Газпромбанка на платёжной системе МИР Supreme; "
     "можно оформить до 4 дополнительных карт Mir Supreme бесплатно",
-    _GPB_PREMIUM,
-    "Официальная страница премиальной карты Газпромбанка")
+    _GPB_PREMIUM_TARIFF,
+    "Официальный тариф пакета с 22.07.2026, разделы I и III",
+    date_checked="2026-07-24")
+
+_GPB_PREMIUM_CASHBACK_FACT = _fact(
+    "Кэшбэк по программе Газпромбанка: до 6% в топ-категориях; с сервисом "
+    "Газпром Бонус «Премиум» лимит до 40 000 бонусных баллов в месяц, "
+    "1 бонусный балл = 1 ₽",
+    _GPB_PREMIUM_CASHBACK,
+    "Официальная программа лояльности с 01.06.2026 по 31.07.2026; таблица "
+    "ставок и лимита для сервиса Газпром Бонус «Премиум»",
+    date_checked="2026-07-24")
 
 _GPB_PRIVATE_DEPOSITS = _fact(
-    "Вклады и накопительные счета: выгодные условия для клиентов Private Banking",
-    _GPB_PRIVATE,
-    "Официальная страница Gazprombank Private Banking")
+    "Вклады Private: фиксированная ставка до 13,65% годовых; плавающая "
+    "ставка до 16,85% годовых; накопительные счета до 13,30% годовых",
+    _GPB_PRIVATE_DEPOSITS_PAGE,
+    "Официальная страница вкладов и накопительных счетов Газпромбанк Private",
+    date_checked="2026-07-24")
+
+_GPB_PRIVATE_CASHBACK = _fact(
+    "Кэшбэк в рублях: до 15% в основной категории; до 20% на здоровье или "
+    "путешествия",
+    _GPB_PRIVATE_PACKAGE,
+    "Официальная страница пакета услуг Газпромбанк Private",
+    date_checked="2026-07-24")
+
+_GPB_PRIVATE_TRANSFERS_FACT = _fact(
+    "Переводы со счёта внутри Газпромбанка — без комиссии; перевод со счёта "
+    "физическому лицу в другой банк в пределах РФ и стран СНГ — 2% от суммы "
+    "(минимум 200 ₽, максимум 1 500 ₽)",
+    _GPB_PRIVATE_TRANSFERS,
+    "Официальные тарифы переводов для клиентов сегментов «ВИП» и "
+    "«Частно-банковский бизнес» с 01.06.2026",
+    date_checked="2026-07-24")
+
+_GPB_PRIVATE_PRIME = _fact(
+    "Премиальная карта PRIME для клиентов Private; доступны пластиковая и "
+    "моментальная карты, платёжный стикер и кольцо. По карте PRIME заявлены "
+    "скидки до 30% в отелях и ресторанах",
+    _GPB_PRIVATE_PACKAGE,
+    "Официальная страница пакета услуг Газпромбанк Private",
+    date_checked="2026-07-24")
 
 # ---------- Альфа-Банк ----------
 _ALFA_ONLY = "https://alfabank.ru/everyday/alfa-only/"
 _ALFA_ONLY_DEPOSIT = "https://alfabank.ru/everyday/package/premium/vklad/"
+_ALFA_ONLY_SUPREME_PAGE = (
+    "https://alfabank.ru/everyday/debit-cards/mir-supreme-short/"
+)
+_ALFA_ONLY_LOYALTY_RULES = (
+    "https://alfabank.servicecdn.ru/site-upload/27/2a/2366/prog_loyal_v46.pdf"
+)
+_ALFA_ACLUB_DEPOSIT_RATES = (
+    "https://alfabank.servicecdn.ru/site-upload/06/72/2363/"
+    "deposits_alfa_fin_club_26062026.pdf"
+)
 _ALFA_ONLY_SALARY = (
     "https://alfabank.ru/everyday/debit-cards/premium/zarplatnaya-karta/"
 )
@@ -701,6 +898,10 @@ _PBI_ACLUB = "https://premiumbanking.info/alfabank/5"
 _ALFA_ONLY_CARD_TARIFFS = (
     "https://alfabank.servicecdn.ru/site-upload/c1/65/275/"
     "Tariffs_Alfa_Only_Card.pdf"
+)
+_ALFA_CASH_LIMITS_OFFICIAL = (
+    "https://alfabank.ru/help/articles/debit-cards/"
+    "kak-snimat-dengi-s-karty-v-bankomate/"
 )
 
 _ALFA_CONCIERGE_FACT = _fact(
@@ -749,16 +950,54 @@ _ALFA_ONLY_TRANSFERS = _fact(
     "Официальный тарифный PDF по карте Alfa Only, раздел 6")
 
 _ALFA_ONLY_CASH_WITHDRAWAL = _fact(
-    "Снятие наличных в банкоматах других банков по миру — бесплатно",
-    _ALFA_ONLY_CARD_TARIFFS,
-    "Официальный тарифный PDF по карте Alfa Only, пункт 3")
+    "Премиальные карты Alfa Only: снятие наличных — до 1,5 млн ₽ в сутки "
+    "и до 3 млн ₽ в месяц; в банкоматах других банков по миру — бесплатно",
+    f"{_ALFA_CASH_LIMITS_OFFICIAL}; {_ALFA_ONLY_CARD_TARIFFS}",
+    "Числовые лимиты подтверждены официальной справочной статьёй "
+    "Альфа-Банка; бесплатное снятие в сторонних банкоматах — официальным "
+    "тарифным PDF Alfa Only, пункт 3. Фактический клиентский лимит общий "
+    "для карт и счетов и может быть изменён банком; актуальное значение "
+    "показывается в приложении",
+    date_checked="2026-07-27")
 
 _ALFA_ONLY_SUPREME = _fact(
-    "Supreme в тарифе карты Alfa Only не заявлен; в Alfa Only бесплатно "
-    "выпускаются и обслуживаются карты Alfa Only, Alfa Only Aeroflot и "
-    "Alfa Only Travel",
-    _ALFA_ONLY_CARD_TARIFFS,
-    "Официальный тарифный PDF по карте Alfa Only, блок премиальных карт")
+    "Дебетовая Альфа-Карта МИР Supreme доступна клиентам Alfa Only",
+    _ALFA_ONLY_SUPREME_PAGE,
+    "Официальная страница заявки на дебетовую Альфа-Карту МИР Supreme; "
+    "условие действует для сервиса Alfa Only на всех его уровнях",
+    date_checked="2026-07-24")
+
+_ALFA_ONLY_SIMPLE_PRIVE = _fact(
+    "Сервис SimplePrivé: статус Silver, персональный менеджер и специальные "
+    "условия в SimpleWine",
+    _ALFA_ONLY_LOYALTY_RULES,
+    "Официальные правила программы Alfa Only, п. 6.3: статус Silver доступен "
+    "участникам всех уровней Alfa Only; точные скидки не добавлены, поскольку "
+    "в правилах банка они не зафиксированы",
+    date_checked="2026-07-24")
+
+
+def _alfa_only_ecosystem(level: int, include_rbc: bool = False) -> dict:
+    items = [
+        "Консультации с юристом и бухгалтером",
+        "Альфа-Мобайл — 10 ГБ, 300 минут и 30 SMS",
+        "Саммари от Smart Reading",
+    ]
+    if include_rbc:
+        items.append("Подписка РБК")
+    items.extend([
+        "Alfa Only Лаундж в SVO, терминал C",
+        "Сервис SimplePrivé: статус Silver, персональный менеджер и "
+        "специальные условия в SimpleWine",
+    ])
+    return _fact(
+        " | ".join(items),
+        f"https://premiumbanking.info/alfabank/{level}; "
+        f"{_ALFA_ONLY_LOYALTY_RULES}",
+        "Состав уровня — ПБИ; SimplePrivé Silver для всех уровней Alfa Only — "
+        "официальные правила программы, п. 6.3",
+        date_checked="2026-07-24",
+    )
 
 _ALFA_ONLY_DEPOSITS = _fact(
     "Премиум-вклад Alfa Only: до 13,8% годовых в рублях или до 4% годовых "
@@ -770,9 +1009,18 @@ _ALFA_ONLY_DEPOSITS = _fact(
     date_checked="2026-07-21")
 
 _ALFA_ACLUB_DEPOSITS = _fact(
-    "Повышенный доход по накопительным счетам и вкладам",
+    "Альфа-Вклад «Новые деньги» для А-Клуба: до 14% годовых с "
+    "капитализацией; минимальная сумма 10 000 ₽",
+    _ALFA_ACLUB_DEPOSIT_RATES,
+    "Официальная таблица ставок А-Клуба, действует с 26 июня 2026 года",
+    date_checked="2026-07-24")
+
+_ALFA_ACLUB_SUPREME = _fact(
+    "Доступны продукты МИР Supreme: кредитная Alfa Travel Мир Supreme и "
+    "платёжные кольца с привилегиями Мир Supreme",
     _ALFA_ACLUB_OFFICIAL,
-    "Официальная страница A-Club")
+    "Текущая официальная страница А-Клуба, раздел «Платёжные аксессуары»",
+    date_checked="2026-07-24")
 
 # ---------- Райффайзен ----------
 _RAIF_PREMIUM = "https://www.raiffeisen.ru/premium/"
@@ -781,6 +1029,141 @@ _RAIF_ADDONS_ABSENT = _fact(
     "— (докупаемых опций нет: Premium — фиксированный пакет, различаются "
     "только способы бесплатного входа: плата/траты/остаток)",
     _RAIF_PREMIUM, "Отсутствие по официальным условиям")
+
+_RAIF_PREMIUM_4_ECOSYSTEM = _fact(
+    "Автоконсьерж | Сервис «Лучи»: медицинские онлайн-консультации, "
+    "10 посещений по ДМС «Лучи» на тарифе «Бизнес» и компенсация чекапа "
+    "за рубежом и чекап «Здоровый образ жизни» | Акция «Привилегии на "
+    "выбор»: промокоды на 2 000 ₽ от Яндекс Еды, Яндекс Go и Детского "
+    "Мира, безлимитные проходы в бизнес-залы, сертификаты на 7 000 ₽ "
+    "в отдельные рестораны Москвы и Санкт-Петербурга",
+    "https://premiumbanking.info/raiffeisen/4",
+    "Профильный источник уровня 5 млн ₽, актуальность июль 2026; "
+    "официальная страница Райффайзен не раскрывает состав акции по уровням",
+    date_checked="2026-07-24")
+
+# ---------- Инго Premium ----------
+_INGO_PREMIUM = "https://ingobank.ru/premium/"
+_INGO_PREMIUM_TARIFF = "https://cdn.ingos.ru/docs/cards/Tarif_7.pdf"
+
+_INGO_ENTRY_CONDITIONS = _fact(
+    "Премиальная карта доступна с платным обслуживанием либо бесплатно при "
+    "выполнении одного из условий в течение расчётного периода: остатки на "
+    "всех счетах от 1,5 млн ₽; остатки от 1 млн ₽ и покупки от 75 000 ₽; "
+    "зачисления от 300 000 ₽ и покупки от 75 000 ₽",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф «Премиальная ИнгоКарта», пункты 1.3.1–1.3.4",
+    date_checked="2026-07-28")
+
+_INGO_SERVICE_COST = _fact(
+    "Первый календарный месяц бесплатно; далее 0 ₽ при выполнении одного "
+    "из условий бесплатности, иначе 2 500 ₽ в месяц",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф «Премиальная ИнгоКарта», пункты 1.2–1.3.4",
+    date_checked="2026-07-28")
+
+_INGO_LOUNGES = _fact(
+    "Ежемесячный общий лимит с ресторанами: 2 привилегии в месяц при остатках от "
+    "1,5 млн ₽ либо остатках от 1 млн ₽ и покупках от 75 000 ₽; "
+    "15 привилегий в месяц при остатках от 5 млн ₽ либо остатках от 3 млн ₽ и "
+    "покупках от 75 000 ₽. Одна привилегия — один проход ON PASS, один "
+    "проход в премиальный бизнес-зал ON PASS Premium или одна скидка "
+    "ON FOOD; услуга для каждого сопровождающего списывается отдельно",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, пункт 10.2 и примечание 12; общий лимит нельзя "
+    "одновременно трактовать как отдельный лимит залов и ресторанов",
+    date_checked="2026-07-28")
+
+_INGO_RESTAURANTS = _fact(
+    "Скидка в партнёрских ресторанах ON FOOD расходует общий месячный лимит "
+    "привилегий с бизнес-залами: 2 привилегии в месяц при остатках от 1,5 млн ₽ "
+    "либо от 1 млн ₽ и покупках от 75 000 ₽; 15 привилегий в месяц при остатках "
+    "от 5 млн ₽ либо от 3 млн ₽ и покупках от 75 000 ₽. Одна скидка "
+    "ON FOOD считается одной привилегией",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, пункт 10.2 и примечание 12; размер скидки в самом "
+    "тарифе не указан",
+    date_checked="2026-07-28")
+
+_INGO_TAXI = _fact(
+    "Компенсация 1 поездки на такси в месяц — до 1 500 Ингорублей "
+    "(курс 1:1). Условия: остатки от 5 млн ₽ либо остатки от 3 млн ₽ и "
+    "покупки от 75 000 ₽ в месяц; поездка должна быть оплачена картой "
+    "Мир Supreme",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, пункт 10.3 и примечание 13; аренда автомобилей "
+    "и каршеринг не входят",
+    date_checked="2026-07-28")
+
+_INGO_INSURANCE = _fact(
+    "Страхование путешествующих: стандартная программа — бесплатно; "
+    "расширенная программа — бесплатно при выполнении одного из условий "
+    "в предыдущем месяце: остатки от 5 млн ₽ либо остатки от 3 млн ₽ и "
+    "покупки от 75 000 ₽",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, пункт 10.1 и примечания 10–11; конкретные риски, "
+    "страховая сумма и срок поездки в тарифе не раскрыты",
+    date_checked="2026-07-28")
+
+_INGO_CASHBACK = _fact(
+    "Без подписки «ИНГО Премиум»: 5% за полисы Ингосстраха без лимита; "
+    "5% в 3 выбранных категориях из 8 (до 1 500 Ингорублей на категорию); "
+    "1,5–2% в топ-категории (до 1 500); 1% на всё; общий лимит "
+    "15 000 Ингорублей в месяц. С подпиской: 10% за полисы Ингосстраха; "
+    "7–10% в 4 выбранных категориях из 9 (до 3 000 на категорию); "
+    "5% в топ-категории (до 3 000); 1,5% на всё; общий лимит "
+    "20 000 Ингорублей в месяц",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, разделы 8–9 и примечание 9; цена подписки в этом "
+    "документе не указана",
+    date_checked="2026-07-28")
+
+_INGO_CARD_TERMS = _fact(
+    "Выпуск Премиальной ИнгоКарты — бесплатно. Первая дополнительная карта "
+    "на срок действия основной — бесплатно, последующие — 2 500 ₽ в год",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, пункты 1.1 и 1.4",
+    date_checked="2026-07-28")
+
+_INGO_CASH_WITHDRAWAL = _fact(
+    "Снятие наличных в банкоматах и пунктах выдачи Инго Банка и сторонних "
+    "банков — без комиссии; лимиты: до 1 млн ₽ в день и до 3 млн ₽ в месяц",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, раздел 3 и примечание 2",
+    date_checked="2026-07-28")
+
+_INGO_TRANSFERS = _fact(
+    "По номеру карты: до 50 000 ₽ в месяц бесплатно, далее 1,5% "
+    "(минимум 50 ₽). СБП другим людям: до 150 000 ₽ в месяц без подписки "
+    "и до 250 000 ₽ с подпиской «ИНГО Премиум», далее 0,5% "
+    "(максимум 1 500 ₽); технический лимит — 750 000 ₽ за операцию/сутки "
+    "без подписки и 900 000 ₽ с подпиской. Переводы на собственные счета "
+    "в других банках — до 30 млн ₽ в месяц без комиссии",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, разделы 4 и 6, примечания 3, 4 и 7",
+    date_checked="2026-07-28")
+
+_INGO_SUPREME = _fact(
+    "Премиальные привилегии бизнес-залов, ресторанов и компенсации такси "
+    "предоставляются держателям карты категории Мир Supreme",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, пункт 10.2 и примечания 12–13",
+    date_checked="2026-07-28")
+
+_INGO_SELECTABLE = _fact(
+    "В общем месячном лимите можно использовать привилегии на выбор: "
+    "проход ON PASS, скидку ON FOOD или проход ON PASS Premium",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, примечание 12",
+    date_checked="2026-07-28")
+
+_INGO_SELECTION_RULES = _fact(
+    "Доступно 2 либо 15 привилегий в месяц в зависимости от остатков и "
+    "покупок; каждый проход или скидка списывает одну привилегию, а услуга "
+    "для каждого сопровождающего учитывается отдельно",
+    _INGO_PREMIUM_TARIFF,
+    "Официальный тариф, примечание 12",
+    date_checked="2026-07-28")
 
 # ---------- Lifestyle ----------
 _OZON_PREMIUM_DOCS = ("https://docs.ozon.ru/common/pravila-prodayoi-i-rekvizity/"
@@ -824,30 +1207,44 @@ _COMPETITOR_FACTS = {
     # ----- ВТБ: Привилегия 1–4; Prime+ получает только общие банковские
     # условия ВТБ по карте/сбережениям, явно опубликованные на официальных
     # страницах ВТБ. Не переносить сюда уникальные сервисы без tier-source.
-    "vtb_privilege_1": {**_VTB_PRIVILEGE_SHARED,
-                        "entry_conditions": _VTB_PRIVILEGE_1_ENTRY,
-                        "addons": _fact(
-                            "— (механика выбора привилегий на уровне 1 не "
-                            "заявлена на странице уровня; появляется с "
-                            "уровней выше)",
-                            "https://premiumbanking.info/vtb/1",
-                            "Отсутствие по структуре условий уровня")},
+    "vtb_privilege_1": {
+        **_VTB_PRIVILEGE_SHARED,
+        "entry_conditions": _VTB_LEVEL_ENTRIES_2026["vtb_privilege_1"],
+        "last_change_date": _fact(
+            "31.07.2026 — запуск уровней «Расти с ВТБ»; первое назначение "
+            "уровня — 01.09.2026",
+            _VTB_UPDATE_2026,
+            "Официальный лендинг не публикует количество преференций для "
+            "уровня «Изумруд», поэтому оно не добавлено в curated-данные",
+            date_checked=_VTB_UPDATE_CHECKED),
+    },
     "vtb_privilege_2": {**_VTB_PRIVILEGE_SHARED,
+                        "entry_conditions":
+                            _VTB_LEVEL_ENTRIES_2026["vtb_privilege_2"],
+                        **_vtb_preference_fields_2026(2),
                         "service_cost": _free_on_conditions(
                             "https://premiumbanking.info/vtb/2")},
     "vtb_privilege_3": {**_VTB_PRIVILEGE_SHARED,
+                        "entry_conditions":
+                            _VTB_LEVEL_ENTRIES_2026["vtb_privilege_3"],
+                        **_vtb_preference_fields_2026(6),
                         "service_cost": _free_on_conditions(
                             "https://premiumbanking.info/vtb/3")},
     "vtb_privilege_4": {**_VTB_PRIVILEGE_SHARED,
+                        "entry_conditions":
+                            _VTB_LEVEL_ENTRIES_2026["vtb_privilege_4"],
+                        **_vtb_preference_fields_2026(10),
                         "service_cost": _free_on_conditions(
                             "https://premiumbanking.info/vtb/4")},
     "vtb_prime_5": {
+        "concierge": _VTB_PRIME_CONCIERGE,
         "cashback": _VTB_CASHBACK,
         "deposits": _VTB_DEPOSITS,
         "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
         "supreme": _VTB_PRIVILEGE_SHARED["supreme"],
     },
     "vtb_prime_6": {
+        "concierge": _VTB_PRIME_CONCIERGE,
         "cashback": _VTB_CASHBACK,
         "deposits": _VTB_DEPOSITS,
         "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
@@ -855,6 +1252,7 @@ _COMPETITOR_FACTS = {
         "service_cost": _free_on_conditions("https://premiumbanking.info/vtb/6"),
     },
     "vtb_prime_7": {
+        "concierge": _VTB_PRIME_CONCIERGE,
         "cashback": _VTB_CASHBACK,
         "deposits": _VTB_DEPOSITS,
         "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
@@ -862,6 +1260,7 @@ _COMPETITOR_FACTS = {
         "service_cost": _free_on_conditions("https://premiumbanking.info/vtb/7"),
     },
     "vtb_prime_8": {
+        "concierge": _VTB_PRIME_CONCIERGE,
         "cashback": _VTB_CASHBACK,
         "deposits": _VTB_DEPOSITS,
         "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
@@ -892,6 +1291,7 @@ _COMPETITOR_FACTS = {
     "gpb_premium_1": {
         "entry_conditions": _GPB_PREMIUM_1_ENTRY,
         "deposits": _GPB_PREMIUM_DEPOSITS,
+        "cashback": _GPB_PREMIUM_CASHBACK_FACT,
         "transfers_payments": _GPB_PREMIUM_TRANSFERS,
         "cash_withdrawal": _GPB_PREMIUM_CASH,
         "supreme": _GPB_PREMIUM_SUPREME,
@@ -899,6 +1299,7 @@ _COMPETITOR_FACTS = {
     "gpb_premium_2": {
         "entry_conditions": _GPB_PREMIUM_2_ENTRY,
         "deposits": _GPB_PREMIUM_DEPOSITS,
+        "cashback": _GPB_PREMIUM_CASHBACK_FACT,
         "transfers_payments": _GPB_PREMIUM_TRANSFERS,
         "cash_withdrawal": _GPB_PREMIUM_CASH,
         "supreme": _GPB_PREMIUM_SUPREME,
@@ -907,6 +1308,7 @@ _COMPETITOR_FACTS = {
     },
     "gpb_premium_3": {
         "deposits": _GPB_PREMIUM_DEPOSITS,
+        "cashback": _GPB_PREMIUM_CASHBACK_FACT,
         "transfers_payments": _GPB_PREMIUM_TRANSFERS,
         "cash_withdrawal": _GPB_PREMIUM_CASH,
         "supreme": _GPB_PREMIUM_SUPREME,
@@ -918,18 +1320,15 @@ _COMPETITOR_FACTS = {
         "service_cost": _free_on_conditions(
             "https://premiumbanking.info/gazprombank/4"),
         "deposits": _GPB_PRIVATE_DEPOSITS,
-        "cashback": _fact(
-            "Программа лояльности «Умный кэшбэк» (Газпром Бонус «Премиум»): "
-            "до 15% + до 7% от ПС «Мир» в ресторанах, суммарно до 22%, "
-            "лимит 40 000 ₽/мес",
-            _GPB_BONUS,
-            "Детализация именно для уровня Private не публикуется — "
-            "указана премиальная версия программы банка"),
+        "cashback": _GPB_PRIVATE_CASHBACK,
+        "transfers_payments": _GPB_PRIVATE_TRANSFERS_FACT,
+        "supreme": _GPB_PRIVATE_PRIME,
     },
     # ----- Альфа-Банк -----
     "alfa_only_1": {"entry_conditions": _ALFA_ONLY_1_ENTRY,
                     "addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
+                    "ecosystem": _ALFA_ONLY_SIMPLE_PRIVE,
                     "cashback": _ALFA_ONLY_CASHBACK,
                     "card_terms": _ALFA_ONLY_CARD_FREE,
                     "transfers_payments": _ALFA_ONLY_TRANSFERS,
@@ -938,6 +1337,7 @@ _COMPETITOR_FACTS = {
                     "deposits": _ALFA_ONLY_DEPOSITS},
     "alfa_only_2": {"addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
+                    "ecosystem": _alfa_only_ecosystem(2),
                     "cashback": _ALFA_ONLY_CASHBACK,
                     "card_terms": _ALFA_ONLY_CARD_FREE,
                     "transfers_payments": _ALFA_ONLY_TRANSFERS,
@@ -948,6 +1348,7 @@ _COMPETITOR_FACTS = {
                         "https://premiumbanking.info/alfabank/2")},
     "alfa_only_3": {"addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
+                    "ecosystem": _alfa_only_ecosystem(3, include_rbc=True),
                     "cashback": _ALFA_ONLY_CASHBACK,
                     "card_terms": _ALFA_ONLY_CARD_FREE,
                     "transfers_payments": _ALFA_ONLY_TRANSFERS,
@@ -958,6 +1359,7 @@ _COMPETITOR_FACTS = {
                         "https://premiumbanking.info/alfabank/3")},
     "alfa_only_4": {"addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
+                    "ecosystem": _alfa_only_ecosystem(4, include_rbc=True),
                     "cashback": _ALFA_ONLY_CASHBACK,
                     "card_terms": _ALFA_ONLY_CARD_FREE,
                     "transfers_payments": _ALFA_ONLY_TRANSFERS,
@@ -978,7 +1380,10 @@ _COMPETITOR_FACTS = {
             _PBI_ACLUB,
             "Fallback после недоступности официальной страницы A-Club"),
         "restaurants": _fact(
-            "Рестораны — безлимит по 2 500 ₽",
+            "Рестораны — безлимит по 2 500 ₽; один чек за одну дату до "
+            "5 000 ₽ списывает две компенсации по 2 500 ₽; доступно при "
+            "вылете и прилёте, в дату поездки и один календарный день до "
+            "или после неё; общий лимит с бизнес-залами",
             _PBI_ACLUB,
             "Fallback после недоступности официальной страницы A-Club"),
         "taxi": _fact(
@@ -1012,6 +1417,7 @@ _COMPETITOR_FACTS = {
             "Постоянная программа кэшбэка A-Club в доступных источниках "
             "не подтверждена; временные акции не используются как тарифный факт"),
         "deposits": _ALFA_ACLUB_DEPOSITS,
+        "supreme": _ALFA_ACLUB_SUPREME,
         "card_terms": _fact(
             "не найдено",
             _PBI_ACLUB,
@@ -1032,8 +1438,31 @@ _COMPETITOR_FACTS = {
                        "service_cost": _free_on_conditions(
                            "https://premiumbanking.info/raiffeisen/3")},
     "raif_premium_4": {"addons": _RAIF_ADDONS_ABSENT,
+                       "ecosystem": _RAIF_PREMIUM_4_ECOSYSTEM,
                        "service_cost": _free_on_conditions(
                            "https://premiumbanking.info/raiffeisen/4")},
+    # ----- Инго Premium -----
+    "ingo_premium": {
+        "positioning": _fact(
+            "Премиальная ИнгоКарта с платным или бесплатным обслуживанием "
+            "по остаткам, зачислениям и покупкам",
+            _INGO_PREMIUM_TARIFF,
+            "Официальный тарифный план 3.1.1.1.2.2",
+            date_checked="2026-07-28"),
+        "entry_conditions": _INGO_ENTRY_CONDITIONS,
+        "service_cost": _INGO_SERVICE_COST,
+        "lounge_access": _INGO_LOUNGES,
+        "cashback": _INGO_CASHBACK,
+        "card_terms": _INGO_CARD_TERMS,
+        "transfers_payments": _INGO_TRANSFERS,
+        "cash_withdrawal": _INGO_CASH_WITHDRAWAL,
+        "supreme": _INGO_SUPREME,
+        "insurance": _INGO_INSURANCE,
+        "taxi": _INGO_TAXI,
+        "restaurants": _INGO_RESTAURANTS,
+        "selectable_options": _INGO_SELECTABLE,
+        "selection_rules": _INGO_SELECTION_RULES,
+    },
     # ----- Lifestyle -----
     "yandex_plus_main": {
         "delivery": _fact(

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Static bank-vs-bank comparison landing generated from comparison JSON.
 
-Интеракция: пользователь выбирает Банк 1 → уровень пакета этого банка,
-затем Банк 2 → уровень пакета; сравнение появляется на том же экране без
-прокрутки страницы. Внутри сравнения — своя скроллируемая область с
-зафиксированной шапкой выбранных уровней.
+Интеракция: пользователь выбирает два банка, после чего видит все уровни
+обоих банков. Подтверждённые близкие уровни сопоставляются попарно без
+повторов; уровни без надёжного аналога остаются отдельными строками.
+Подробное сравнение условий раскрывается внутри каждой строки.
 
 Терминология UI — «уровень пакета». Внутренний ключ данных `tier` не
 переименовывается: его читают JSON-экспорт, Excel-отчёт и этот модуль как
@@ -28,6 +28,20 @@ from scanner.scoring import SCORERS
 from scanner.sources import NOT_FOUND, NOT_FOUND_AVAILABLE
 
 INTL_SEGMENT = "digital-first (межд.)"
+
+# Официальные курсы Банка России на дату текущего набора данных.
+# Источник: https://www.cbr.ru/currency_base/daily/
+# Значения нужны только для сопоставления страховых сумм в USD и EUR;
+# исходная валюта и сумма продолжают отображаться без изменений.
+INSURANCE_FX_RUB_PER_UNIT = {
+    "$": 78.4049,
+    "€": 89.4443,
+}
+INSURANCE_FX_DATE = "2026-07-24"
+INSURANCE_FX_SOURCE_URL = (
+    "https://www.cbr.ru/currency_base/daily/"
+    "?UniDbQuery.Posted=True&UniDbQuery.To=24.07.2026"
+)
 
 FIELD_COLUMNS = {
     "entry_conditions": "Условия входа / поддержания уровня",
@@ -207,6 +221,7 @@ def build_payload(rows: list[dict]) -> list[dict]:
                 _validate_attr(attr, f"{row['bank']} / {row['tier']} / {field}")
                 attrs.append(attr)
             levels.append({
+                "tier_id": row["tier_id"],
                 "tier": row["tier"],  # значение поля данных; в UI — уровень пакета
                 "segment": row["segment"],
                 "scan_date": (row.get("scan_date") or "")[:10],
@@ -277,10 +292,25 @@ def _attr_metric(field: str, row: dict) -> dict:
 
 
 def _sber_landing_override(field: str, row: dict):
-    """Narrow presentation fixes for Sber levels on the Sber VS landing."""
-    if row.get("bank") != "Сбер":
-        return None
+    """Narrow, source-backed presentation fixes for named landing levels."""
+    bank = row.get("bank")
     tier_id = row.get("tier_id")
+    if bank == "Альфа-Банк" and field == "restaurants" and tier_id == "alfa_aclub":
+        value = (
+            "Включено постоянно: безлимит по 2 500 ₽. Ограничения: один чек "
+            "за одну дату до 5 000 ₽ списывает две компенсации по 2 500 ₽; "
+            "только в аэропорту при вылете или прилёте, в дату поездки и один "
+            "календарный день до или после неё; общий лимит с бизнес-залами."
+        )
+        return {
+            "value": value,
+            "score": _comparison_score(field, value),
+            "note": value,
+            "details": "",
+            "evaluation_text": value,
+        }
+    if bank != "Сбер":
+        return None
     text_by_field = {
         "lounge_access": {
             "sber_first_4": (
@@ -298,6 +328,10 @@ def _sber_landing_override(field: str, row: dict):
         },
         "restaurants": {
             "sber_premier_2": "1 посещение в месяц на 2000 ₽ — опция «Такси и рестораны».",
+            "sber_private_6": (
+                "Включено постоянно: безлимит по 5000 ₽ — опция «Рестораны» "
+                "2 чека в день"
+            ),
         },
     }
     other_benefits_by_tier = {
@@ -357,10 +391,10 @@ def render_html(banks: list[dict], rows: list[dict], changes: list[dict] = None)
   <main class="page">
     <section class="hero">
       <p class="eyebrow">Премиальный банкинг РФ</p>
-      <h1>Сравнение уровней пакетов</h1>
-      <p class="lead">Выберите Банк 1 и уровень пакета — мы предложим
-      сопоставимые уровни других банков. После выбора трёх банков сравнение
-      условий и привилегий появится на этой странице.</p>
+      <h1>Сравнение банков</h1>
+      <p class="lead">Выберите два банка — мы сопоставим всю линейку их
+      премиальных уровней по подтверждённым условиям входа. Каждый уровень
+      будет показан один раз, а подробные условия можно раскрыть внутри пары.</p>
       <div class="stats">
         <div><b>{len(banks)}</b><span>банков</span></div>
         <div><b>{total_levels}</b><span>уровней пакетов</span></div>
@@ -373,31 +407,11 @@ def render_html(banks: list[dict], rows: list[dict], changes: list[dict] = None)
       <div class="picker" data-side="a">
         <h2>Банк 1</h2>
         <div class="chip-row banks">{bank_chips}</div>
-        <h3 class="lvl-title" hidden>Уровень пакета</h3>
-        <div class="chip-row levels"></div>
       </div>
       <div class="picker" data-side="b">
         <h2>Банк 2</h2>
         <div class="chip-row banks">{bank_chips}</div>
-        <h3 class="lvl-title" hidden>Уровень пакета</h3>
-        <div class="chip-row levels"></div>
       </div>
-      <div class="picker" data-side="c">
-        <h2>Банк 3</h2>
-        <div class="chip-row banks">{bank_chips}</div>
-        <h3 class="lvl-title" hidden>Уровень пакета</h3>
-        <div class="chip-row levels"></div>
-      </div>
-    </section>
-    <section id="recommendations" class="recommendations" hidden aria-live="polite">
-      <div class="recommendations-head">
-        <div>
-          <p class="recommendations-kicker">Быстрый подбор</p>
-          <h2>Подходящие уровни</h2>
-        </div>
-        <p id="recommendations-summary" class="recommendations-summary"></p>
-      </div>
-      <div id="recommendations-list" class="recommendation-grid"></div>
     </section>
     <p id="js-warning" class="js-warning">Если банки не выбираются, файл открыт
     во встроенном просмотрщике без JavaScript. Нажмите «Поделиться» → «Открыть
@@ -406,28 +420,31 @@ def render_html(banks: list[dict], rows: list[dict], changes: list[dict] = None)
     <section id="compare" hidden>
       <div class="compare-actions">
         <div>
-          <p class="print-title">Сравнение премиальных пакетов</p>
+          <p class="print-title">Сравнение банков</p>
           <p class="print-date">Дата данных: {_esc(latest_scan)}</p>
         </div>
-        <button type="button" class="pdf-button" id="pdf-button">Выгрузить PDF</button>
-      </div>
-      <div class="cmp-scroll">
-        <div class="cmp-head">
-          <div class="cmp-attr-spacer" aria-hidden="true"></div>
-          <div class="cmp-col" data-head="a"></div>
-          <div class="cmp-col" data-head="b"></div>
-          <div class="cmp-col" data-head="c"></div>
+        <div class="compare-buttons">
+          <button type="button" class="secondary-button" id="expand-all">
+            Развернуть все</button>
+          <button type="button" class="secondary-button" id="collapse-all">
+            Свернуть все</button>
+          <button type="button" class="pdf-button" id="pdf-button">Выгрузить PDF</button>
         </div>
-        <table class="cmp-table">
-          <thead>
-            <tr><th>Атрибут</th><th data-th="a"></th><th data-th="b"></th><th data-th="c"></th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
       </div>
+      <div class="map-heading">
+        <div>
+          <p class="recommendations-kicker">Карта уровней</p>
+          <h2 id="map-title"></h2>
+        </div>
+        <p id="map-summary" class="map-summary" aria-live="polite"></p>
+      </div>
+      <p class="map-method">Сначала сопоставляются пересекающиеся подтверждённые
+      диапазоны входа, затем близкие пороги с сохранением порядка продуктовых
+      линеек. Неподтверждённые или удалённые уровни остаются без прямого аналога.</p>
+      <div id="pair-list" class="pair-list"></div>
     </section>
-    <p id="hint" class="hint">Выберите банк и уровень пакета во всех трёх колонках —
-    сравнение появится здесь.</p>
+    <p id="hint" class="hint">Выберите два разных банка — здесь появится карта
+    всех уровней обеих продуктовых линеек.</p>
 
     <footer class="footer">
       <p>Данные — из JSON-экспорта сканера, у каждого значения зафиксирован
@@ -569,7 +586,9 @@ def _entry_match_from_text(value: str) -> dict:
     clauses = [
         part.strip(" ,;.|.")
         for part in re.split(
-            r"\s*(?:[;|\n]+|,\s*(?=(?:и\s+)?или\b)|\bи\s+или\b|\bили\b|"
+            r"\s*(?:[;|\n]+|\.\s+(?=(?:другие\s+)?регионы\b|москва\b)|"
+            r",\s*(?=(?:и\s+)?или\b)|\bи\s+или\b|"
+            r"\bили\b|\bлибо\b|"
             r"\bи\b(?=\s*\d[^;|]*(?:моск|мск|регион)))\s*",
             text,
             flags=re.IGNORECASE,
@@ -592,9 +611,9 @@ def _entry_match_from_text(value: str) -> dict:
             continue
         amount = amounts[0]
         if "моск" in low or re.search(r"\bмск\b", low):
-            regional.append(("moscow", amount))
+            regional.append(("moscow", amount, bool(re.search(r"\bдо\b", low))))
         elif "регион" in low:
-            regional.append(("regions", amount))
+            regional.append(("regions", amount, bool(re.search(r"\bдо\b", low))))
         else:
             generic.append(amount)
 
@@ -607,8 +626,17 @@ def _entry_match_from_text(value: str) -> dict:
             "label": _compact_rub(amount),
         }
     if regional:
-        values = [amount for _scope, amount in regional]
+        values = [amount for _scope, amount, _upper_bound in regional]
         minimum, maximum = min(values), max(values)
+        if all(upper_bound for _scope, _amount, upper_bound in regional):
+            return {
+                "eligible": True,
+                "min_amount": 0,
+                "max_amount": maximum,
+                "label": (
+                    f"до {_rub_interval_label(minimum, maximum)} по региону"
+                ),
+            }
         return {
             "eligible": True,
             "min_amount": minimum,
@@ -964,6 +992,21 @@ def _limit_scope(text: str, field: str):
 
 def _limit_evaluation(text: str, field: str) -> dict:
     low = text.lower()
+    if (
+        field == "cash_withdrawal"
+        and "при выполнении условий" in low
+        and re.search(r"сняти[ея][^.;]{0,90}без комис", low)
+        and "сторонних банк" in low
+    ):
+        return _evaluation(
+            "limit", {"unlimited": True, "limits": []}, {},
+            "Без комиссии во всех банкоматах при выполнении условий",
+            scope={"operation_scope": "all_atms"},
+            reason=(
+                "Сравнивается отсутствие комиссии во всех банкоматах; "
+                "технические операционные лимиты не считаются комиссионным лимитом."
+            ),
+        )
     scope = _limit_scope(text, field)
     if scope in {"mixed_card_types", "mixed_atm_scope"}:
         return _incomparable_evaluation(
@@ -986,6 +1029,12 @@ def _limit_evaluation(text: str, field: str) -> dict:
 
     limits = []
     for match in _rub_amount_matches(text):
+        if field == "transfers_payments":
+            before_long = low[max(0, match["start"] - 100):match["start"]]
+            if re.search(
+                r"(?:общий|технический)[^.;]{0,80}лимит", before_long
+            ):
+                continue
         after = text[match["end"]:min(len(text), match["end"] + 36)]
         before = text[max(0, match["start"] - 36):match["start"]]
         period = _limit_period(after) or _limit_period(before)
@@ -1038,6 +1087,9 @@ def _lounge_evaluation(text: str) -> dict:
     guest = re.search(r"(\d+)\s*(?:гост|спутник)", low)
     if guest:
         metrics["guests"] = float(guest.group(1))
+    access_programs = _lounge_access_programs(text)
+    if access_programs:
+        metrics["access_programs"] = len(access_programs)
     if not metrics or set(metrics) == {"availability"}:
         return _incomparable_evaluation(
             "Количество посещений или безлимит не подтверждены.",
@@ -1052,10 +1104,52 @@ def _lounge_evaluation(text: str) -> dict:
         summary += ", включено постоянно"
     elif availability == 1:
         summary += ", опция на выбор"
+    if access_programs:
+        summary += f", сервисов доступа: {len(access_programs)}"
     return _evaluation(
         "lounge", metrics, directions, summary,
-        reason="Учитываются посещения, постоянная включённость и подтверждённые гости.",
+        reason=(
+            "Учитываются посещения, число явно названных сервисов доступа, "
+            "постоянная включённость и подтверждённые гости."
+        ),
     )
+
+
+def _lounge_access_programs(text: str) -> list[str]:
+    """Return unique, explicitly named lounge-access programs.
+
+    Longer names are matched first and consume their text span. This lets
+    ``ON·PASS`` and ``ON·PASS Premium`` count as two programs when both are
+    explicitly listed, without double-counting a lone Premium occurrence.
+    """
+    patterns = (
+        ("Phoenix Pass Exclusive", r"\bphoenix\s+pass\s+exclusive\b"),
+        ("ON·PASS Premium", r"\bon\s*[·.]\s*pass\s+premium\b"),
+        ("MILE·ON·AIR", r"\bmile\s*[·.]\s*on\s*[·.]\s*air\b"),
+        ("Persona.aero", r"\bpersona(?:\.aero)?\b"),
+        ("Phoenix Pass", r"\bphoenix\s+pass\b"),
+        ("Priority Pass", r"\bpriority\s+pass\b"),
+        ("Lounge Key", r"\blounge\s*key\b"),
+        ("DragonPass", r"\bdragon\s*pass\b"),
+        ("Every Lounge", r"\bevery\s+lounge\b"),
+        ("Soft Travel", r"\bsoft\s+travel\b"),
+        ("Only Assist", r"\bonly\s+assist\b"),
+        ("Mir Pass", r"\bmir\s+pass\b"),
+        ("Grey Wall", r"\bgrey\s+wall\b"),
+        ("ON·PASS", r"\bon\s*[·.]\s*pass\b"),
+        ("Частично", r"\bчастично\b"),
+    )
+    low = text.lower()
+    occupied: list[tuple[int, int]] = []
+    found: list[str] = []
+    for name, pattern in patterns:
+        for match in re.finditer(pattern, low, flags=re.IGNORECASE):
+            span = match.span()
+            if any(span[0] < end and start < span[1] for start, end in occupied):
+                continue
+            occupied.append(span)
+            found.append(name)
+    return found
 
 
 def _compensation_evaluation(text: str, field: str) -> dict:
@@ -1069,20 +1163,31 @@ def _compensation_evaluation(text: str, field: str) -> dict:
         return _incomparable_evaluation(
             "Привилегия действует с отдельным ограничением.", _shorten(text, 110)
         )
+    # Capital, salary and purchase thresholds describe eligibility, not the
+    # value of a taxi/restaurant benefit.  Ignore the qualification tail when
+    # extracting counts and ruble amounts, but keep the full text for the
+    # displayed condition and availability status.
+    benefit_text = re.split(
+        r"\bусловия\s*:|(?:доступн\w*\s+)?при\s+"
+        r"(?:остат|баланс|капитал|покуп|трат|зачисл|поступл|оборот)",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
     metrics = {}
     if any(marker in low for marker in ("безлимит", "без ограничений", "не ограничен")):
         metrics["unlimited"] = 1
-    counts = _monthly_counts(text)
+    counts = _monthly_counts(benefit_text)
     if counts:
         metrics["monthly_count"] = max(counts)
-    annual_counts = _annual_counts(text)
+    annual_counts = _annual_counts(benefit_text)
     if annual_counts:
         metrics["annual_count"] = max(annual_counts)
-    amounts = _rub_amounts(text)
+    amounts = _rub_amounts(benefit_text)
     per_use = re.search(
         r"(?:по|до|на|чек(?:а|ом)?\s*(?:до)?|поездк[аи]?\s*(?:до)?)\s*"
-        r"(\d[\d\s.,]*)\s*(тыс|млн)?\s*₽",
-        text,
+        r"(\d[\d\s.,]*)\s*(тыс|млн)?\s*(?:₽|ингорубл(?:ей|я|ь)?)",
+        benefit_text,
         flags=re.IGNORECASE,
     )
     if per_use:
@@ -1190,7 +1295,8 @@ def _cashback_evaluation(text: str) -> dict:
                 cap *= 1_000_000
             metrics["monthly_cap"] = cap
     bonus_exchange = re.search(
-        r"(\d+(?:[.,]\d+)?)\s*(?:бонус\w*|б)\s*=\s*"
+        r"(\d+(?:[.,]\d+)?)\s*(?:бонус\w*|б)"
+        r"(?:\s+балл\w*)?\s*=\s*"
         r"(\d+(?:[.,]\d+)?)\s*₽",
         low,
     )
@@ -1240,12 +1346,8 @@ def _deposits_evaluation(text: str, scan_date: str) -> dict:
         return _incomparable_evaluation(
             "Ставка или надбавка не опубликована.", _shorten(text, 110)
         )
-    if len(set(rates)) > 1:
-        return _incomparable_evaluation(
-            "Указано несколько ставок без единой сопоставимой комбинации срока и суммы.",
-            _shorten(text, 110),
-        )
-    metrics = {"rate": rates[0]}
+    rate = max(rates)
+    metrics = {"rate": rate}
     directions = {"rate": "higher"}
     minimum = re.search(
         r"(?:от|min(?:imum)?)\s*(\d[\d\s.,]*)\s*(тыс|млн)?\s*₽", text,
@@ -1271,9 +1373,13 @@ def _deposits_evaluation(text: str, scan_date: str) -> dict:
         metrics[key] = amount
         directions[key] = direction
     return _evaluation(
-        "dominance", metrics, directions, f"{rates[0]:g}%",
+        "dominance", metrics, directions,
+        f"до {rate:g}%" if len(set(rates)) > 1 else f"{rate:g}%",
         scope={"scan_date": scan_date},
-        reason="Ставки сравниваются только на одну дату и при сопоставимых ограничениях.",
+        reason=(
+            "При нескольких опубликованных ставках сравнивается максимальная "
+            "ставка категории; даты проверки должны совпадать."
+        ),
     )
 
 
@@ -1299,10 +1405,18 @@ def _insurance_evaluation(text: str) -> dict:
         second_value = float(second.replace(",", ".")) if second else first
         unit = (coverage_match.group(4) or "").lower()
         multiplier = 1_000_000 if unit == "млн" else 1000 if unit == "тыс" else 1
+        currency = coverage_match.group(1)
         metrics["coverage"] = first * multiplier
+        metrics["coverage_rub"] = (
+            metrics["coverage"] * INSURANCE_FX_RUB_PER_UNIT[currency]
+        )
         if second is not None:
             metrics["secondary_coverage"] = second_value * multiplier
-        scope["currency"] = coverage_match.group(1)
+            metrics["secondary_coverage_rub"] = (
+                metrics["secondary_coverage"]
+                * INSURANCE_FX_RUB_PER_UNIT[currency]
+            )
+        scope["currency"] = currency
     days = [float(value) for value in re.findall(r"(\d+)\s*(?:дн|дней|дня)", low)]
     if days:
         metrics["trip_days"] = max(days)
@@ -1333,7 +1447,8 @@ def _insurance_evaluation(text: str) -> dict:
         "dominance", metrics, {key: "higher" for key in metrics},
         ", ".join(summary_parts) or "Подтверждённое страхование", scope=scope,
         reason=("Учитываются сумма, срок, территория и статус подключения. "
-                "Страховые суммы сравниваются только в одинаковой валюте."),
+                "Покрытия в долларах и евро сопоставляются в рублёвом "
+                f"эквиваленте по официальному курсу ЦБ на {INSURANCE_FX_DATE}."),
     )
 
 
@@ -1372,7 +1487,7 @@ def _service_presence_evaluation(text: str, field: str) -> dict:
         )
     if any(marker in low for marker in ("при актив", "при выполн", "покупк от", "может быть")):
         rank, label = 2, "Доступно при выполнении условий"
-    elif "бесплат" in low:
+    elif "бесплат" in low or "включён в пакет" in low or "включен в пакет" in low:
         rank, label = 4, "Бесплатно включено"
     elif re.search(r"(?<!бес)платн", low) or re.search(
         r"(?:стоимост|обслуживан|выпуск)[^.;]{0,28}\d[\d\s]*\s*₽", text,
@@ -1385,6 +1500,13 @@ def _service_presence_evaluation(text: str, field: str) -> dict:
         return _incomparable_evaluation(
             "Наличие услуги не подтверждено однозначно.", _shorten(text, 110)
         )
+    if (
+        field == "supreme"
+        and rank == 4
+        and "дополнительн" in low
+        and "бесплат" in low
+    ):
+        rank, label = 3, "Карта подтверждена; дополнительные карты бесплатны"
     metrics = {"service_rank": rank}
     directions = {"service_rank": "higher"}
     if field == "concierge" and any(marker in low for marker in ("24/7", "круглосуточ")):
@@ -1394,6 +1516,14 @@ def _service_presence_evaluation(text: str, field: str) -> dict:
     if field == "supreme" and extra_cards:
         metrics["additional_cards"] = float(extra_cards.group(1))
         directions["additional_cards"] = "higher"
+    if field == "supreme":
+        if "world elite" in low or re.search(r"\bprime\b", low):
+            metrics["card_tier_rank"] = 5
+        elif "supreme" in low:
+            metrics["card_tier_rank"] = 4
+        else:
+            metrics["card_tier_rank"] = 2
+        directions["card_tier_rank"] = "higher"
     return _evaluation(
         "ordinal", metrics, directions, label,
         reason="Статус наличия, бесплатность и подтверждённые условия сравниваются раздельно.",
@@ -1408,13 +1538,37 @@ def _benefit_rub_total(description: str):
     """Return a confirmed total when one benefit states count × rubles."""
     match = re.search(
         r"(\d+(?:[.,]\d+)?)\s*"
-        r"(?:заказ(?:а|ов)?|посещени(?:е|я|й)|поезд(?:ка|ки|ок))\s+"
-        r"по\s+(\d[\d\s.,]*)\s*(тыс|млн)?\s*₽",
+        r"(?:заказ(?:а|ов)?|посещени(?:е|я|й)|поезд(?:ка|ки|ок))"
+        r"(?:\s+в\s+месяц)?\s+(?:по|на)\s+"
+        r"(\d[\d\s.,]*)\s*(тыс|млн)?\s*₽",
         description,
         flags=re.IGNORECASE,
     )
     if not match:
-        return None
+        bonus_rubles = re.search(
+            r"(\d[\d\s.,]*)\s*бонусн(?:ых|ые)?\s+руб(?:лей|ля|ль)?"
+            r"(?:\s+в\s+(?:месяц|мес\.?))?",
+            description,
+            flags=re.IGNORECASE,
+        )
+        if bonus_rubles:
+            return _parse_rub_number(bonus_rubles.group(1))
+        promo = re.search(
+            r"промокод(?:ы|ов)?\s+на\s+(\d[\d\s.,]*)\s*(тыс|млн)?(?:\s*₽)?",
+            description,
+            flags=re.IGNORECASE,
+        )
+        if not promo:
+            return None
+        amount = _parse_rub_number(promo.group(1))
+        if amount is None:
+            return None
+        unit = (promo.group(2) or "").lower()
+        if unit == "тыс":
+            amount *= 1000
+        elif unit == "млн":
+            amount *= 1_000_000
+        return amount
     count = _parse_float(match.group(1))
     amount = _parse_rub_number(match.group(2))
     if count is None or amount is None:
@@ -1428,13 +1582,17 @@ def _benefit_rub_total(description: str):
 
 
 def _benefits_evaluation(raw_value, display_value) -> dict:
-    raw = _public_text(raw_value)
+    source_text = str(raw_value or "")
+    raw = _public_text(source_text)
     if _is_missing(raw):
         return _missing_evaluation()
-    items = display_value if isinstance(display_value, list) else _benefits_list(raw)
+    items = (
+        display_value
+        if isinstance(display_value, list)
+        else _benefits_list(source_text)
+    )
     benefits = {}
     labels = {}
-    unknown = []
     status_rank = {"selectable": 1, "always_included": 2}
     for item in items:
         if item.get("availability") == "rule":
@@ -1443,20 +1601,15 @@ def _benefits_evaluation(raw_value, display_value) -> dict:
         if not key:
             continue
         availability = item.get("availability", "")
-        if availability not in status_rank:
-            unknown.append(item.get("title", key))
-            continue
-        benefit = {"status": status_rank[availability]}
+        benefit = {
+            "status": status_rank.get(availability, 1),
+            "status_known": 1 if availability in status_rank else 0,
+        }
         rub_total = _benefit_rub_total(item.get("description", ""))
         if rub_total is not None:
             benefit["rub_total"] = rub_total
         benefits[key] = benefit
         labels[key] = item.get("title", key)
-    if unknown:
-        return _incomparable_evaluation(
-            "Не для всех привилегий подтверждён статус «включено постоянно» или «на выбор».",
-            f"Неполная классификация: {', '.join(unknown[:3])}",
-        )
     if not benefits:
         return _incomparable_evaluation(
             "Не найден набор привилегий с подтверждённым статусом.",
@@ -1467,8 +1620,18 @@ def _benefits_evaluation(raw_value, display_value) -> dict:
     )
     selectable_count = sum(
         1 for benefit in benefits.values() if benefit["status"] == 1
+        and benefit["status_known"] == 1
     )
-    summary = f"{always_count} постоянно, {selectable_count} на выбор"
+    confirmed_count = sum(
+        1 for benefit in benefits.values() if benefit["status_known"] == 0
+    )
+    summary_parts = [
+        f"{always_count} постоянно",
+        f"{selectable_count} на выбор",
+    ]
+    if confirmed_count:
+        summary_parts.append(f"{confirmed_count} с подтверждённым наличием")
+    summary = ", ".join(summary_parts)
     valued = [
         f"{labels[key]}: {_compact_rub(benefit['rub_total'])}"
         for key, benefit in benefits.items()
@@ -1478,8 +1641,11 @@ def _benefits_evaluation(raw_value, display_value) -> dict:
         summary += f"; {', '.join(valued)}"
     return _evaluation(
         "benefit_set", {"benefits": benefits, "labels": labels}, {}, summary,
-        reason=("Наборы сравниваются по включению одинаковых привилегий, "
-                "их статусу и подтверждённому номиналу одинаковых услуг."),
+        reason=(
+            "Наборы сравниваются по подтверждённому наличию одинаковых "
+            "привилегий, известному статусу включения и подтверждённому "
+            "номиналу одинаковых услуг."
+        ),
     )
 
 
@@ -1586,7 +1752,8 @@ def _monthly_counts(text: str) -> list[float]:
         float(n.replace(",", "."))
         for n in re.findall(
             r"(\d+(?:[.,]\d+)?)\s*(?:в мес|/мес|раз(?:а|ов)? в месяц|"
-            r"посещени(?:е|я|й) в месяц)", low
+            r"посещени(?:е|я|й) в месяц|привилеги(?:я|и|й) в месяц|"
+            r"поезд(?:ка|ки|ок)[^.;]{0,20}в месяц)", low
         )
     ]
     annual = [count / 12 for count in _annual_counts(text)]
@@ -1881,7 +2048,7 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 .stats b { display: block; font-size: 24px; color: var(--green);
   font-family: ui-monospace, "SF Mono", Menlo, monospace; }
 .stats span { color: var(--muted); font-size: 13px; }
-.pickers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px;
+.pickers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
   margin-top: 22px; }
 .picker { background: var(--surface); border: 1px solid var(--line);
   border-radius: 8px; min-width: 0; padding: 14px 16px;
@@ -1900,6 +2067,7 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 .chip:hover { border-color: var(--green); color: var(--green); }
 .chip.active { background: var(--green); border-color: var(--green); color: #fff; }
 .chip.active .chip-meta { color: rgba(255, 255, 255, 0.84); }
+.chip:disabled { cursor: not-allowed; opacity: .38; }
 .recommendations { margin-top: 16px; padding: 16px; border: 1px solid var(--line);
   border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
 .recommendations-head { display: flex; align-items: end; justify-content: space-between;
@@ -1935,16 +2103,22 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 .js-ready .js-warning { display: none; }
 .compare-actions { display: flex; align-items: center; justify-content: space-between;
   gap: 12px; margin-bottom: 12px; }
+.compare-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .print-title, .print-date { display: none; }
-.pdf-button { min-height: 44px; border: 1px solid var(--green);
-  border-radius: 8px; background: var(--green); color: #fff; cursor: pointer;
-  padding: 10px 14px; font: inherit; font-weight: 700; }
+.pdf-button, .secondary-button { min-height: 44px; border: 1px solid var(--green);
+  border-radius: 8px; cursor: pointer; padding: 10px 14px; font: inherit;
+  font-weight: 700; }
+.pdf-button { background: var(--green); color: #fff; }
+.secondary-button { background: var(--surface); color: var(--green); }
 .pdf-button:hover, .pdf-button:focus-visible { background: #0f7a41;
   border-color: #0f7a41; outline: 2px solid rgba(24, 143, 79, 0.24);
   outline-offset: 2px; }
+.secondary-button:hover, .secondary-button:focus-visible {
+  background: var(--green-soft); outline: 2px solid rgba(24, 143, 79, 0.18);
+  outline-offset: 2px; }
 .pdf-button:disabled { cursor: wait; opacity: 0.72; }
 #compare {
-  --compare-level-count: 3;
+  --compare-level-count: 2;
   --compare-attr-column: minmax(8.5rem, 0.38fr);
   --compare-level-column: minmax(0, 1fr);
   --compare-grid-template:
@@ -1953,6 +2127,45 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
   --compare-cell-padding: 10px 12px;
   margin-top: 22px;
 }
+.map-heading { display: flex; align-items: end; justify-content: space-between;
+  gap: 18px; padding: 18px 0 10px; border-bottom: 1px solid var(--line); }
+.map-heading h2 { margin: 0; font-size: 26px; line-height: 1.2; }
+.map-summary { max-width: 520px; margin: 0; color: var(--muted); font-size: 13px;
+  text-align: right; }
+.map-method { margin: 10px 0 16px; color: var(--muted); font-size: 13px; }
+.pair-list { display: grid; gap: 12px; counter-reset: pair; }
+.level-pair { border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+.level-pair > summary { display: block; padding: 0; cursor: pointer; list-style: none; }
+.level-pair > summary::-webkit-details-marker { display: none; }
+.level-pair > summary:focus-visible { outline: 3px solid rgba(24, 143, 79, .22);
+  outline-offset: -3px; }
+.pair-grid { display: grid; grid-template-columns: minmax(0, 1fr) 170px minmax(0, 1fr);
+  align-items: stretch; min-width: 0; }
+.pair-level { min-width: 0; padding: 16px 18px; }
+.pair-level:first-child { border-left: 4px solid var(--green); }
+.pair-level:last-child { border-right: 4px solid var(--green); }
+.pair-bank { margin: 0 0 3px; color: var(--green); font-size: 12px;
+  font-weight: 800; text-transform: uppercase; }
+.pair-level h3 { margin: 0; font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
+.pair-entry { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+.pair-level.empty { display: flex; align-items: center; justify-content: center;
+  background: #f7f9f5; color: var(--muted); text-align: center; }
+.pair-match { display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 5px; padding: 12px; border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line); background: #f7f9f5; text-align: center; }
+.match-badge { display: inline-block; border-radius: 999px; padding: 4px 9px;
+  background: var(--green-soft); color: var(--green); font-size: 11px;
+  font-weight: 800; line-height: 1.3; }
+.match-badge.nearest { background: #fff8e8; color: #795f1e; }
+.match-badge.unmatched { background: #f0f2ef; color: #667069; }
+.pair-toggle { color: var(--muted); font-size: 11px; font-weight: 700; }
+.level-pair[open] .pair-toggle::before { content: "Свернуть"; }
+.level-pair:not([open]) .pair-toggle::before { content: "Сравнить подробно"; }
+.pair-detail { padding: 0 14px 14px; border-top: 1px solid var(--line); }
+.pair-detail .cmp-scroll { max-height: none; margin-top: 14px; box-shadow: none; }
+.pair-detail-note { margin: 12px 2px 0; color: var(--muted); font-size: 12px; }
+.no-analog { background: #f7f9f5; color: var(--muted); font-style: italic; }
 .cmp-head {
   display: grid;
   grid-template-columns: var(--compare-grid-template);
@@ -2018,7 +2231,8 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 .attr-details p { margin: 6px 0 0; color: var(--ink); white-space: normal; }
 .pdf-exporting #compare { width: 1120px; margin: 0; background: #fff; color: #111; }
 .pdf-exporting .compare-actions { display: block; margin: 0 0 10px; }
-.pdf-exporting .compare-actions .pdf-button { display: none; }
+.pdf-exporting .compare-actions .pdf-button,
+.pdf-exporting .compare-actions .secondary-button { display: none; }
 .pdf-exporting .print-title { display: block; margin: 0; font-size: 24px;
   line-height: 1.2; font-weight: 800; color: #111; }
 .pdf-exporting .print-date { display: block; margin: 4px 0 0; color: #4f5c55; }
@@ -2036,6 +2250,19 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
   .picker, .recommendations { padding: 14px; }
   .recommendations-head { display: block; }
   .recommendations-summary { margin-top: 6px; text-align: left; }
+  .compare-actions, .map-heading { display: block; }
+  .compare-buttons { justify-content: stretch; margin-top: 10px; }
+  .compare-buttons button { flex: 1 1 140px; }
+  .map-summary { margin-top: 6px; text-align: left; }
+  .pair-grid { grid-template-columns: 1fr; }
+  .pair-level:first-child { border-left: 4px solid var(--green);
+    border-bottom: 1px solid var(--line); }
+  .pair-level:last-child { border-right: 0; border-left: 4px solid var(--green);
+    border-top: 1px solid var(--line); }
+  .pair-match { border: 0; padding: 9px 12px; }
+  .pair-detail { padding: 0 0 2px; border-top: 1px solid var(--line); }
+  .pair-detail .cmp-scroll { margin-top: 0; }
+  .pair-detail-note { padding: 0 12px; }
   .recommendation-grid { grid-template-columns: 1fr; }
   .recommendation-card { min-height: 0; }
   .chip-row { gap: 8px; }
@@ -2072,7 +2299,7 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
   .page { max-width: none; margin: 0; padding: 0; }
   .hero, .pickers, .recommendations, #hint,
   #js-warning, .footer,
-  .compare-actions .pdf-button {
+  .compare-actions .pdf-button, .compare-actions .secondary-button {
     display: none !important;
   }
   #compare { display: block !important; margin: 0; }
@@ -2095,6 +2322,7 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
   .cmp-table thead th { color: #4f5c55; font-size: 8px; box-shadow: none; }
   .cmp-table td:first-child { color: #4f5c55; font-size: 8px; font-weight: 700; }
   .cmp-table tr { break-inside: avoid; page-break-inside: avoid; }
+  .level-pair { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
   .cmp-table td.rank-best, .cmp-table td.win {
     background: #f0faf4; box-shadow: inset 2px 0 0 #2e9b62; }
   .cmp-table td.rank-mid {
@@ -2113,12 +2341,12 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 
 _JS = """
 const DATA = JSON.parse(document.getElementById('data').textContent);
-const SIDES = ['a', 'b', 'c'];
+const SIDES = ['a', 'b'];
 const ALWAYS_SHOW_FIELDS = new Set(['transfers_payments', 'cash_withdrawal', 'supreme']);
 const HTML2CANVAS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
 const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 let pdfLibraryPromise = null;
-const state = Object.fromEntries(SIDES.map((side) => [side, { bank: null, level: null }]));
+const state = Object.fromEntries(SIDES.map((side) => [side, { bank: null }]));
 document.documentElement.classList.add('js-ready');
 
 function el(tag, cls, text) {
@@ -2131,61 +2359,24 @@ function el(tag, cls, text) {
 function renderBanks(side) {
   const picker = document.querySelector(`.picker[data-side="${side}"]`);
   const row = picker.querySelector('.banks');
+  const otherSide = side === 'a' ? 'b' : 'a';
   row.querySelectorAll('.chip').forEach((chip) => {
     const i = Number(chip.dataset.bankIndex);
     if (state[side].bank === i) chip.classList.add('active');
     else chip.classList.remove('active');
+    chip.disabled = state[otherSide].bank === i;
     chip.onclick = () => {
       state[side].bank = i;
-      state[side].level = null;
       renderBanks(side);
-      renderLevels(side);
-      renderRecommendations();
-      renderCompare();
+      renderBanks(otherSide);
+      renderMap();
     };
   });
 }
 
-function renderLevels(side) {
-  const picker = document.querySelector(`.picker[data-side="${side}"]`);
-  const title = picker.querySelector('.lvl-title');
-  const row = picker.querySelector('.levels');
-  row.innerHTML = '';
-  const bankIdx = state[side].bank;
-  title.hidden = bankIdx === null;
-  if (bankIdx === null) return;
-  DATA[bankIdx].levels.forEach((lvl, i) => {
-    const chip = el('button', 'chip level-chip');
-    chip.type = 'button';
-    chip.appendChild(el('span', 'chip-main', lvl.tier));
-    if (lvl.entry_hint) chip.appendChild(el('span', 'chip-meta', `(${lvl.entry_hint})`));
-    if (state[side].level === i) chip.classList.add('active');
-    chip.onclick = () => {
-      state[side].level = i;
-      renderLevels(side);
-      renderRecommendations();
-      renderCompare();
-      if (side === 'a') scrollToRecommendations();
-    };
-    row.appendChild(chip);
-  });
-}
-
-function scrollToRecommendations() {
-  const section = document.getElementById('recommendations');
-  if (section.hidden) return;
-  const reduceMotion = window.matchMedia
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  section.scrollIntoView({
-    behavior: reduceMotion ? 'auto' : 'smooth',
-    block: 'start'
-  });
-}
-
-function selected(side) {
-  const s = state[side];
-  if (s.bank === null || s.level === null) return null;
-  return { bank: DATA[s.bank].bank, ...DATA[s.bank].levels[s.level] };
+function selectedBank(side) {
+  const index = state[side].bank;
+  return index === null ? null : DATA[index];
 }
 
 function validEntryMatch(level) {
@@ -2236,165 +2427,230 @@ function formatRub(amount) {
   return `${new Intl.NumberFormat('ru-RU').format(value)} ₽`;
 }
 
-function buildRecommendations(referenceBankIndex, referenceLevel) {
-  const reference = referenceLevel.entry_match;
-  const recommendations = [];
-  DATA.forEach((bank, bankIndex) => {
-    if (bankIndex === referenceBankIndex) return;
-    const candidates = bank.levels
-      .map((level, levelIndex) => {
-        if (!validEntryMatch(level)) return null;
-        const kind = recommendationKind(reference, level.entry_match);
-        return {
-          bank: bank.bank,
-          bankIndex,
-          level,
-          levelIndex,
-          distance: intervalDistance(reference, level.entry_match),
-          width: Number(level.entry_match.max_amount)
-            - Number(level.entry_match.min_amount),
-          kind
-        };
-      })
-      .filter(Boolean)
-      .sort((left, right) => left.kind.rank - right.kind.rank
-        || left.distance - right.distance
-        || left.width - right.width
-        || left.levelIndex - right.levelIndex);
-    if (candidates.length) recommendations.push(candidates[0]);
+function levelCompatibility(left, right) {
+  if (!validEntryMatch(left) || !validEntryMatch(right)) return null;
+  const leftMatch = left.entry_match;
+  const rightMatch = right.entry_match;
+  const distance = intervalDistance(leftMatch, rightMatch);
+  const sameScalar = Number(leftMatch.min_amount) === Number(leftMatch.max_amount)
+    && Number(rightMatch.min_amount) === Number(rightMatch.max_amount)
+    && Number(leftMatch.min_amount) === Number(rightMatch.min_amount);
+  if (sameScalar) {
+    return {
+      id: 'exact', label: 'Точное совпадение порога', cost: 0,
+      reason: `Подтверждённый порог входа совпадает: ${leftMatch.label}.`
+    };
+  }
+  if (distance === 0) {
+    return {
+      id: 'overlap', label: 'Диапазоны входа пересекаются', cost: 0.05,
+      reason: `Подтверждённые диапазоны пересекаются: `
+        + `${leftMatch.label} и ${rightMatch.label}.`
+    };
+  }
+  const leftMiddle = (Number(leftMatch.min_amount) + Number(leftMatch.max_amount)) / 2;
+  const rightMiddle = (Number(rightMatch.min_amount) + Number(rightMatch.max_amount)) / 2;
+  const relativeDistance = distance / Math.max(1, Math.min(leftMiddle, rightMiddle));
+  if (relativeDistance > 0.5) return null;
+  return {
+    id: 'nearest', label: `Ближайшие уровни · разница ${formatRub(distance)}`,
+    cost: 0.25 + relativeDistance,
+    reason: `Прямого пересечения нет. Разница между ближайшими границами `
+      + `${formatRub(distance)}; порядок продуктовых линеек сохранён.`
+  };
+}
+
+function alignLevels(leftLevels, rightLevels) {
+  const gapCost = 0.7;
+  const rows = leftLevels.length + 1;
+  const cols = rightLevels.length + 1;
+  const dp = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
+  const previous = Array.from({ length: rows }, () => Array(cols).fill(null));
+  dp[0][0] = 0;
+  for (let i = 1; i < rows; i += 1) {
+    dp[i][0] = dp[i - 1][0] + gapCost;
+    previous[i][0] = { action: 'left', i: i - 1, j: 0 };
+  }
+  for (let j = 1; j < cols; j += 1) {
+    dp[0][j] = dp[0][j - 1] + gapCost;
+    previous[0][j] = { action: 'right', i: 0, j: j - 1 };
+  }
+  for (let i = 1; i < rows; i += 1) {
+    for (let j = 1; j < cols; j += 1) {
+      const compatibility = levelCompatibility(leftLevels[i - 1], rightLevels[j - 1]);
+      const candidates = [
+        {
+          cost: dp[i - 1][j] + gapCost, priority: 1,
+          step: { action: 'left', i: i - 1, j }
+        },
+        {
+          cost: dp[i][j - 1] + gapCost, priority: 2,
+          step: { action: 'right', i, j: j - 1 }
+        }
+      ];
+      if (compatibility) {
+        candidates.push({
+          cost: dp[i - 1][j - 1] + compatibility.cost, priority: 0,
+          step: { action: 'pair', i: i - 1, j: j - 1, compatibility }
+        });
+      }
+      candidates.sort((left, right) => left.cost - right.cost
+        || left.priority - right.priority);
+      dp[i][j] = candidates[0].cost;
+      previous[i][j] = candidates[0].step;
+    }
+  }
+
+  const pairs = [];
+  let i = leftLevels.length;
+  let j = rightLevels.length;
+  while (i > 0 || j > 0) {
+    const step = previous[i][j];
+    if (step.action === 'pair') {
+      pairs.push({
+        left: leftLevels[i - 1], right: rightLevels[j - 1],
+        match: step.compatibility
+      });
+    } else if (step.action === 'left') {
+      pairs.push({ left: leftLevels[i - 1], right: null, match: null });
+    } else {
+      pairs.push({ left: null, right: rightLevels[j - 1], match: null });
+    }
+    i = step.i;
+    j = step.j;
+  }
+  return pairs.reverse();
+}
+
+function renderLevelCard(bankName, level, emptyText) {
+  if (!level) {
+    const empty = el('div', 'pair-level empty');
+    empty.appendChild(el('span', '', emptyText));
+    return empty;
+  }
+  const card = el('article', 'pair-level');
+  card.dataset.tierId = level.tier_id || '';
+  card.appendChild(el('p', 'pair-bank', bankName));
+  card.appendChild(el('h3', '', level.tier));
+  const entry = level.entry_match && level.entry_match.label
+    ? level.entry_match.label
+    : 'нет подтверждённого числового порога';
+  card.appendChild(el('p', 'pair-entry', `Вход: ${entry}`));
+  return card;
+}
+
+function renderPairDetail(container, pair, leftBank, rightBank) {
+  const detail = el('div', 'pair-detail');
+  const note = pair.match
+    ? pair.match.reason
+    : 'Прямой аналог не показан: сопоставление по подтверждённым условиям '
+      + 'входа невозможно или разница порогов слишком велика.';
+  detail.appendChild(el('p', 'pair-detail-note', note));
+  const scroll = el('div', 'cmp-scroll');
+  const table = el('table', 'cmp-table');
+  const thead = el('thead');
+  const headRow = el('tr');
+  headRow.appendChild(el('th', '', 'Атрибут'));
+  headRow.appendChild(el('th', '',
+    pair.left ? `${leftBank.bank} — ${pair.left.tier}` : leftBank.bank));
+  headRow.appendChild(el('th', '',
+    pair.right ? `${rightBank.bank} — ${pair.right.tier}` : rightBank.bank));
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  const tbody = el('tbody');
+  const template = pair.left || pair.right;
+  template.attrs.forEach((baseAttr, index) => {
+    const leftAttr = pair.left ? pair.left.attrs[index] : null;
+    const rightAttr = pair.right ? pair.right.attrs[index] : null;
+    const presentAttrs = [leftAttr, rightAttr].filter(Boolean);
+    if (!ALWAYS_SHOW_FIELDS.has(baseAttr.id)
+        && presentAttrs.every((attr) => isEmptyDisplay(attr.value))) return;
+    const tr = el('tr');
+    tr.appendChild(el('td', '', baseAttr.label));
+    const cellsBySide = {};
+    const attrsBySide = {};
+    [
+      ['a', pair.left, leftAttr, leftBank],
+      ['b', pair.right, rightAttr, rightBank]
+    ].forEach(([side, level, attr, bank]) => {
+      const td = el('td');
+      if (level && attr) {
+        renderAttrValue(td, attr);
+        td.dataset.label = `${bank.bank} — ${level.tier}`;
+        if (attr.note) td.title = attr.note;
+        cellsBySide[side] = td;
+        attrsBySide[side] = attr;
+      } else {
+        td.className = 'no-analog';
+        td.dataset.label = bank.bank;
+        td.textContent = 'Нет прямого аналога для сравнения';
+      }
+      tr.appendChild(td);
+    });
+    if (pair.left && pair.right) {
+      highlightWinners([
+        { side: 'a', item: { bank: leftBank.bank, ...pair.left } },
+        { side: 'b', item: { bank: rightBank.bank, ...pair.right } }
+      ], attrsBySide, cellsBySide);
+    }
+    tbody.appendChild(tr);
   });
-  return recommendations.sort((left, right) => left.kind.rank - right.kind.rank
-    || left.distance - right.distance
-    || left.bank.localeCompare(right.bank, 'ru'));
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+  detail.appendChild(scroll);
+  container.appendChild(detail);
 }
 
-function nextRecommendationSide() {
-  return ['b', 'c'].find((side) => state[side].bank === null
-    || state[side].level === null) || null;
+function renderPair(pair, leftBank, rightBank) {
+  const details = el('details', 'level-pair');
+  const summary = el('summary');
+  const grid = el('div', 'pair-grid');
+  grid.appendChild(renderLevelCard(
+    leftBank.bank, pair.left, `Нет прямого аналога в ${leftBank.bank}`
+  ));
+  const match = el('div', 'pair-match');
+  const matchInfo = pair.match || {
+    id: 'unmatched', label: 'Нет прямого аналога'
+  };
+  match.appendChild(el('span', `match-badge ${matchInfo.id}`, matchInfo.label));
+  match.appendChild(el('span', 'pair-toggle'));
+  grid.appendChild(match);
+  grid.appendChild(renderLevelCard(
+    rightBank.bank, pair.right, `Нет прямого аналога в ${rightBank.bank}`
+  ));
+  summary.appendChild(grid);
+  details.appendChild(summary);
+  renderPairDetail(details, pair, leftBank, rightBank);
+  return details;
 }
 
-function applyRecommendation(recommendation) {
-  const side = nextRecommendationSide();
-  if (!side) return;
-  state[side].bank = recommendation.bankIndex;
-  state[side].level = recommendation.levelIndex;
-  renderBanks(side);
-  renderLevels(side);
-  renderRecommendations();
-  renderCompare();
-}
-
-function renderRecommendations() {
-  const section = document.getElementById('recommendations');
-  const summary = document.getElementById('recommendations-summary');
-  const list = document.getElementById('recommendations-list');
-  const referenceState = state.a;
-  if (referenceState.bank === null || referenceState.level === null) {
-    section.hidden = true;
-    list.innerHTML = '';
-    return;
-  }
-
-  section.hidden = false;
-  list.innerHTML = '';
-  const referenceLevel = DATA[referenceState.bank].levels[referenceState.level];
-  if (!validEntryMatch(referenceLevel)) {
-    summary.textContent = 'Автоматический подбор доступен для уровней '
-      + 'с подтверждённым условием по капиталу или остатку.';
-    list.appendChild(el('p', 'recommendation-empty',
-      'У выбранного уровня нет отдельного подтверждённого порога капитала. '
-      + 'Банки 2 и 3 можно выбрать вручную.'));
-    return;
-  }
-
-  summary.textContent = `Ориентир: ${referenceLevel.entry_match.label}. `
-    + 'Сначала показаны точные совпадения, затем ближайшие уровни.';
-  const recommendations = buildRecommendations(referenceState.bank, referenceLevel);
-  if (!recommendations.length) {
-    list.appendChild(el('p', 'recommendation-empty',
-      'В доступных данных нет других уровней с подтверждённым порогом капитала.'));
-    return;
-  }
-
-  const selectedBanks = new Set(['b', 'c']
-    .map((side) => state[side].bank)
-    .filter((bankIndex) => bankIndex !== null));
-  const slotsFull = nextRecommendationSide() === null;
-  recommendations.forEach((recommendation) => {
-    const alreadySelected = selectedBanks.has(recommendation.bankIndex);
-    const card = el('button', `recommendation-card ${recommendation.kind.id}`);
-    card.type = 'button';
-    card.disabled = alreadySelected || slotsFull;
-    card.appendChild(el('span', 'recommendation-bank', recommendation.bank));
-    card.appendChild(el('span', 'recommendation-tier', recommendation.level.tier));
-    card.appendChild(el('span', 'recommendation-threshold',
-      `Вход: ${recommendation.level.entry_match.label}`));
-    let matchLabel = recommendation.kind.label;
-    if (alreadySelected) matchLabel += ' · Уже выбран';
-    else if (slotsFull) matchLabel += ' · Места заполнены';
-    card.appendChild(el('span', 'recommendation-match', matchLabel));
-    card.onclick = () => applyRecommendation(recommendation);
-    list.appendChild(card);
-  });
-}
-
-function renderHead(node, item) {
-  node.innerHTML = '';
-  node.appendChild(el('h2', '', item.bank + ' — ' + item.tier));
-  if (item.entry_hint) node.appendChild(el('p', 'cmp-entry-hint', `Вход: ${item.entry_hint}`));
-}
-
-function renderCompare() {
-  const selectedItems = SIDES
-    .map((side) => ({ side, item: selected(side) }))
-    .filter((entry) => entry.item);
+function renderMap() {
   const cmp = document.getElementById('compare');
   const hint = document.getElementById('hint');
-  if (selectedItems.length < SIDES.length) {
+  const leftBank = selectedBank('a');
+  const rightBank = selectedBank('b');
+  if (!leftBank || !rightBank) {
     cmp.hidden = true;
     hint.hidden = false;
     return;
   }
-  cmp.hidden = false; hint.hidden = true;
-  cmp.style.setProperty('--compare-level-count', String(selectedItems.length));
-
-  SIDES.forEach((side) => {
-    const entry = selectedItems.find((item) => item.side === side);
-    const head = cmp.querySelector(`[data-head="${side}"]`);
-    const th = cmp.querySelector(`[data-th="${side}"]`);
-    renderHead(head, entry.item);
-    th.textContent = entry.item.bank + ' — ' + entry.item.tier;
-  });
-
-  const tbody = cmp.querySelector('tbody');
-  tbody.innerHTML = '';
-  selectedItems[0].item.attrs.forEach((baseAttr, i) => {
-    const attrsBySide = Object.fromEntries(
-      selectedItems.map((entry) => [entry.side, entry.item.attrs[i]])
-    );
-    const selectedAttrs = selectedItems.map((entry) => attrsBySide[entry.side]);
-    if (!ALWAYS_SHOW_FIELDS.has(baseAttr.id)
-        && selectedAttrs.every((attr) => isEmptyDisplay(attr.value))) return;
-    const tr = el('tr');
-    const labelCell = el('td', '', baseAttr.label);
-    tr.appendChild(labelCell);
-
-    const cellsBySide = {};
-    SIDES.forEach((side) => {
-      const td = el('td');
-      const entry = selectedItems.find((item) => item.side === side);
-      const attr = attrsBySide[side];
-      renderAttrValue(td, attr);
-      td.dataset.label = entry.item.bank + ' — ' + entry.item.tier;
-      if (attr.note) td.title = attr.note;
-      cellsBySide[side] = td;
-      tr.appendChild(td);
-    });
-
-    highlightWinners(selectedItems, attrsBySide, cellsBySide);
-    tbody.appendChild(tr);
-  });
-  cmp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const wasHidden = cmp.hidden;
+  cmp.hidden = false;
+  hint.hidden = true;
+  document.getElementById('map-title').textContent =
+    `${leftBank.bank} против ${rightBank.bank}`;
+  const pairs = alignLevels(leftBank.levels, rightBank.levels);
+  const matched = pairs.filter((pair) => pair.left && pair.right).length;
+  const unmatched = pairs.length - matched;
+  document.getElementById('map-summary').textContent =
+    `${leftBank.levels.length + rightBank.levels.length} уровней · `
+    + `${matched} сопоставленных пар · ${unmatched} без прямого аналога`;
+  const list = document.getElementById('pair-list');
+  list.innerHTML = '';
+  pairs.forEach((pair) => list.appendChild(renderPair(pair, leftBank, rightBank)));
+  if (wasHidden) {
+    cmp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function loadPdfScript(url, ready) {
@@ -2425,9 +2681,9 @@ function loadPdfLibrary() {
 
 function comparePdfFileName() {
   const parts = SIDES
-    .map((side) => selected(side))
+    .map((side) => selectedBank(side))
     .filter(Boolean)
-    .map((item) => item.bank + ' ' + item.tier);
+    .map((item) => item.bank);
   const name = 'premium-comparison-' + parts.join('-vs-');
   return name
     .toLowerCase()
@@ -2520,6 +2776,8 @@ async function exportComparePdf() {
 function highlightWinners(selectedItems, attrsBySide, cellsBySide) {
   const entries = selectedItems.map((entry) => ({
     side: entry.side,
+    bank: entry.item.bank,
+    tierId: entry.item.tier_id,
     attr: attrsBySide[entry.side],
     evaluation: attrsBySide[entry.side].evaluation || {
       status: 'missing', reason: 'Нет структурированной оценки.'
@@ -2552,23 +2810,6 @@ function rankEvaluations(entries) {
   );
   if (!available.length) return entries.map((entry) => results.get(entry.side));
 
-  if (available[0].attr.id === 'insurance') {
-    const currencies = new Set(available
-      .map((entry) => entry.evaluation.scope && entry.evaluation.scope.currency)
-      .filter(Boolean));
-    if (currencies.size > 1) {
-      available.forEach((entry) => {
-        results.set(entry.side, {
-          side: entry.side,
-          status: 'incomparable',
-          summary: entry.evaluation.summary,
-          reason: 'Страховые суммы указаны в разных валютах и не пересчитываются без подтверждённого курса.'
-        });
-      });
-      return entries.map((entry) => results.get(entry.side));
-    }
-  }
-
   if (available.every((entry) => entry.evaluation.status === 'comparable')) {
     const totals = new Map(available.map((entry) => [entry.side, 0]));
     let structuredOrder = true;
@@ -2598,10 +2839,58 @@ function rankEvaluations(entries) {
     }
   }
 
+  const hierarchyFallback = gazprombankTransferHierarchyFallback(available);
+  if (hierarchyFallback) {
+    return applyVisualRanks(
+      entries, hierarchyFallback.entries, results,
+      hierarchyFallback.vectors, false
+    );
+  }
+
   const vectors = new Map(
     available.map((entry) => [entry.side, fallbackRankVector(entry)])
   );
   return applyVisualRanks(entries, available, results, vectors, true);
+}
+
+function gazprombankTransferHierarchyFallback(entries) {
+  if (!entries.length
+      || !entries.every((entry) => entry.bank === 'Газпромбанк')
+      || !entries.every((entry) => entry.attr?.id === 'transfers_payments')) {
+    return null;
+  }
+  const hasPrivate = entries.some((entry) => entry.tierId === 'gpb_private');
+  const hasPremium = entries.some(
+    (entry) => String(entry.tierId || '').startsWith('gpb_premium_')
+  );
+  const privateComparable = entries.some(
+    (entry) => entry.tierId === 'gpb_private'
+      && entry.evaluation.status === 'comparable'
+  );
+  if (!hasPrivate || !hasPremium || privateComparable) return null;
+
+  const reason = 'Для несопоставимых каналов переводов внутри Газпромбанка '
+    + 'применена иерархия пакетов: Private — старший уровень. '
+    + 'Бесплатный лимит Private не придуман и в тексте не подменён.';
+  const rankedEntries = entries.map((entry) => {
+    const isPrivate = entry.tierId === 'gpb_private';
+    return {
+      ...entry,
+      evaluation: {
+        ...entry.evaluation,
+        summary: isPrivate
+          ? 'Старший уровень Private; каналы переводов различаются'
+          : 'Уровень Premium; каналы переводов различаются',
+        reason: [entry.evaluation.reason, reason].filter(Boolean).join(' ')
+      }
+    };
+  });
+  return {
+    entries: rankedEntries,
+    vectors: new Map(rankedEntries.map(
+      (entry) => [entry.side, [entry.tierId === 'gpb_private' ? 1 : 0]]
+    ))
+  };
 }
 
 function applyVisualRanks(entries, available, results, vectors, fallbackUsed) {
@@ -2726,7 +3015,7 @@ function fallbackRankVector(entry) {
   if (attr.id === 'lounge_access') {
     const annualVisits = metric('annual_cap', metric('visits_monthly') * 12);
     return [metric('unlimited'), annualVisits, metric('visits_monthly'),
-      metric('availability'), metric('guests')];
+      metric('access_programs'), metric('availability'), metric('guests')];
   }
   if (attr.id === 'cashback') {
     const rateKnown = Number.isFinite(Number(metrics.max_rate)) ? 1 : 0;
@@ -2743,11 +3032,16 @@ function fallbackRankVector(entry) {
       metric('availability')];
   }
   if (attr.id === 'insurance') {
-    return [metric('coverage'), metric('secondary_coverage'),
+    return [metric('coverage_rub', metric('coverage')),
+      metric('secondary_coverage_rub', metric('secondary_coverage')),
       metric('trip_days'), metric('availability')];
   }
-  if (attr.id === 'concierge' || attr.id === 'supreme') {
+  if (attr.id === 'concierge') {
     return [metric('service_rank', legacyScore ?? 0), metric('round_the_clock'),
+      metric('additional_cards')];
+  }
+  if (attr.id === 'supreme') {
+    return [metric('card_tier_rank'), metric('service_rank', legacyScore ?? 0),
       metric('additional_cards')];
   }
   if (attr.id === 'other_benefits') {
@@ -2759,7 +3053,7 @@ function fallbackRankVector(entry) {
     const rubTotal = benefitValues.reduce(
       (total, item) => total + (Number(item.rub_total) || 0), 0
     );
-    return [always, selectable, confirmed, rubTotal];
+    return [confirmed, rubTotal, always, selectable];
   }
   return [legacyScore ?? 0];
 }
@@ -2802,13 +3096,31 @@ function compareLounges(left, right) {
     }
     visitOrder = leftVisits === rightVisits ? 0 : leftVisits > rightVisits ? 1 : -1;
   }
-  const omit = new Set(['unlimited', 'visits_monthly']);
+  if (visitOrder) return { order: visitOrder, reason: '' };
+
+  const leftPrograms = Number(left.metrics.access_programs);
+  const rightPrograms = Number(right.metrics.access_programs);
+  if (Number.isFinite(leftPrograms) && Number.isFinite(rightPrograms)
+      && leftPrograms !== rightPrograms) {
+    return { order: leftPrograms > rightPrograms ? 1 : -1, reason: '' };
+  }
+
+  const omit = new Set([
+    'unlimited', 'visits_monthly', 'annual_cap', 'access_programs'
+  ]);
   const leftOther = Object.fromEntries(
-    Object.entries(left.metrics).filter(([key]) => !omit.has(key))
+    Object.entries(left.metrics).filter(
+      ([key]) => !omit.has(key)
+        && Object.prototype.hasOwnProperty.call(right.metrics, key)
+    )
   );
   const rightOther = Object.fromEntries(
-    Object.entries(right.metrics).filter(([key]) => !omit.has(key))
+    Object.entries(right.metrics).filter(
+      ([key]) => !omit.has(key)
+        && Object.prototype.hasOwnProperty.call(left.metrics, key)
+    )
   );
+  if (!Object.keys(leftOther).length) return { order: 0, reason: '' };
   const directions = Object.fromEntries(
     Object.keys(leftOther).map((key) => [key, 'higher'])
   );
@@ -2819,10 +3131,7 @@ function compareLounges(left, right) {
     ) }
   );
   if (other.order === null) return other;
-  if (visitOrder && other.order && visitOrder !== other.order) {
-    return { order: null, reason: 'число посещений и дополнительные условия дают разных лидеров.' };
-  }
-  return { order: visitOrder || other.order, reason: '' };
+  return { order: other.order, reason: other.reason || '' };
 }
 
 function compareOrdinal(left, right) {
@@ -3035,7 +3344,16 @@ function hasMixedBenefitStatuses(items) {
 SIDES.forEach((side) => {
   renderBanks(side);
 });
-renderRecommendations();
+document.getElementById('expand-all').addEventListener('click', () => {
+  document.querySelectorAll('#pair-list .level-pair').forEach((item) => {
+    item.open = true;
+  });
+});
+document.getElementById('collapse-all').addEventListener('click', () => {
+  document.querySelectorAll('#pair-list .level-pair').forEach((item) => {
+    item.open = false;
+  });
+});
 document.getElementById('pdf-button').addEventListener('click', exportComparePdf);
 initChangesApp(document.querySelector('.changes-app'));
 initChangesPanel(document.querySelector('.js-changes-panel'));

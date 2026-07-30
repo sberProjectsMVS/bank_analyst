@@ -7,7 +7,9 @@ competitor-scanner — конкурентный анализ премиальн�
     python main.py --scan-bank tbank        # точечный скан одного банка
     python main.py --scan-lifestyle         # только экосистемные подписки
     python main.py --build-sber-vs          # HTML-лендинг Сбер VS банки
-    python main.py --build-premium-changes  # HTML-лендинг изменений с premiumbanking.info
+    python main.py --scan-news              # быстрый скан новостей + пересборка лендинга
+    python main.py --sync-premium-news      # проверить и загрузить новости из Google Sheets
+    python main.py --build-premium-changes  # HTML-лендинг изменений из PBI и Google Sheets
     python main.py --build-premium-reviews  # HTML-отчёт отзывов о премиуме Сбера
     python main.py --list-sources           # показать все источники
 """
@@ -197,8 +199,18 @@ def run_scan(mode: str, bank_id: str = None):
     else:
         banks = sources.BANKS
 
+    from scanner.premium_news import sync_premium_news_sources
+
+    news_stats = sync_premium_news_sources(
+        bank_id=bank_id if mode == "bank" else None,
+    )
     fetcher = Fetcher(RAW_DIR)
     results, ok, failed = scan_banks(banks, fetcher, scan_dt)
+    ok.extend(f"Новости / {name}" for name in news_stats["sources_ok"])
+    failed.update({
+        f"Новости / {name}": error
+        for name, error in news_stats["sources_failed"].items()
+    })
     if mode == "all":
         scan_aggregators(fetcher, scan_dt, ok, failed)
 
@@ -344,6 +356,12 @@ def list_sources():
     print("\nАгрегаторы:")
     for agg in sources.AGGREGATORS:
         print(f"    {agg['id']:22s} {agg['name']}")
+    print("\nНовостной монитор:")
+    for source in sources.PREMIUM_NEWS_SOURCES:
+        print(
+            f"    {source['id']:28s} {source['name']} "
+            f"({source['source_type']})"
+        )
 
 
 def build_sber_vs_only():
@@ -365,8 +383,58 @@ def build_premium_changes_only():
     stats = build_premium_changes_landing(OUTPUT_PATH, PREMIUM_CHANGES_PATH)
     log.info("Лендинг изменений премиальных программ собран: %s",
              stats["output"])
-    log.info("Банков: %d; изменений: %d; ошибок: %d",
-             stats["banks"], stats["changes"], stats["failed"])
+    log.info("Банков: %d; публикаций: %d; из монитора: %d; ошибок: %d",
+             stats["banks"], stats["changes"], stats["news"], stats["failed"])
+    return stats
+
+
+def sync_premium_news_only():
+    from scanner.editorial_news import EditorialNewsError, sync_editorial_news
+
+    try:
+        stats = sync_editorial_news()
+    except EditorialNewsError as exc:
+        log.error("Синхронизация Google Sheets не выполнена: %s", exc)
+        raise SystemExit(1) from exc
+    log.info(
+        "Google Sheets синхронизирован: %d новостей; дублей пропущено: %d",
+        stats["imported"],
+        stats["duplicates"],
+    )
+    return stats
+
+
+def scan_premium_news_only():
+    """Scan news sources and rebuild both changes views without a full scan."""
+    from scanner.premium_news import sync_premium_news_sources
+
+    stats = sync_premium_news_sources()
+    scan_dt = datetime.now().isoformat(timespec="seconds")
+    service_events = [
+        {
+            "scan_date": scan_dt,
+            "bank": "— новости —",
+            "tier": name,
+            "field": "источник",
+            "old": "",
+            "new": f"недоступен: {error}",
+            "kind": "service",
+            "source": "",
+            "source_url": "",
+        }
+        for name, error in stats["sources_failed"].items()
+    ]
+    append_log(SERVICE_LOG_PATH, service_events, cap=MAX_SERVICE_LOG)
+    log.info(
+        "Новостной монитор: новых %d; уже известных %d; "
+        "источников успешно %d, с ошибками %d",
+        stats["discovered"],
+        stats["duplicates"],
+        len(stats["sources_ok"]),
+        len(stats["sources_failed"]),
+    )
+    build_premium_changes_only()
+    build_sber_vs_only()
     return stats
 
 
@@ -447,11 +515,17 @@ def main():
                        help="скан одного банка (id из --list-sources)")
     group.add_argument("--scan-lifestyle", action="store_true",
                        help="скан только экосистемных подписок")
+    group.add_argument("--scan-news", action="store_true",
+                       help="быстро проверить официальные и отраслевые новости "
+                            "премиального банкинга и пересобрать лендинг")
     group.add_argument("--build-sber-vs", action="store_true",
                        help="собрать HTML-лендинг Сбер VS банки из JSON-экспорта")
     group.add_argument("--build-premium-changes", action="store_true",
                        help="собрать HTML-лендинг изменений премиальных программ "
-                            "с premiumbanking.info")
+                            "из PremiumBanking.info и Google Sheets")
+    group.add_argument("--sync-premium-news", action="store_true",
+                       help="проверить Google Sheets и обновить кеш "
+                            "редакционных новостей")
     group.add_argument("--build-premium-reviews", action="store_true",
                        help="собрать отзывы о премиальном обслуживании Сбера "
                             "(Sravni/Otzovik/ПБИ) и HTML-отчёт")
@@ -468,6 +542,10 @@ def main():
         build_sber_vs_only()
     elif args.build_premium_changes:
         build_premium_changes_only()
+    elif args.sync_premium_news:
+        sync_premium_news_only()
+    elif args.scan_news:
+        scan_premium_news_only()
     elif args.build_premium_reviews:
         from landing.premium_reviews import build_premium_reviews_landing
         stats = build_premium_reviews_landing(

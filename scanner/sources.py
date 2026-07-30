@@ -282,19 +282,46 @@ _OZON_PRODUCTS_OFFICIAL = "https://finance.ozon.ru/products"
 _OZON_SAVINGS_OFFICIAL = "https://finance.ozon.ru/promo/savings/landing"
 _OZON_DEPOSIT_OFFICIAL = "https://finance.ozon.ru/promo/deposit/landing"
 _VTB_PRIVILEGE_TARIFF_PDF = "https://www.vtb.ru/media-files/vtb.ru/sitepages/tarify/chastnim-licam/t-priv_pbu.pdf"
+_VTB_RKO_TARIFF_XLSX = "https://www.vtb.ru/media-files/vtb.ru/sitepages/tarify/chastnim-licam/t_rko.xlsx"
 _VTB_PRIME_PLUS_TARIFF_PDF = "https://private.vtb.ru/media-files/private.vtb.ru/sitepages/promo/new-pu-pm/tarify_praym_plyus_01.10.2025.pdf"
 _VTB_PRIVILEGE_OFFICIAL = "https://www.vtb.ru/privilegia/"
+_VTB_PRIVILEGE_UPDATE_2026 = "https://www.vtb.ru/promo/rsvtb-pv-2/"
 _VTB_PRIME_PLUS_OFFICIAL = "https://www.vtb.ru/privilegia/paket-prime/"
 _VTB_PRIVILEGE_CARD = "https://www.vtb.ru/privilegia/karty/debetovye/privilegiya-mir-supreme/"
+_VTB_SBP_OFFICIAL = "https://www.vtb.ru/personal/online-servisy/perevody-sbp/"
 _RAIF_PACKAGE_TARIFF_PDF = "https://www.raiffeisen.ru/common/img/uploaded/files/retail/package/tariffs_pakety_uslug.pdf"
 _RAIF_PREMIUM_OFFICIAL = "https://www.raiffeisen.ru/premium/"
-_GPB_PREMIUM_BONUS_TARIFF_PDF = "https://www.gazprombank.ru/upload/files/iblock/9ff/1ha4uno7pm7yti3z20ke9bdre727aog7/Tarify-po-predostavleniyu-fizicheskim-litsam-_-klientam-Banka-GPB-servisa-Gazprom-Bonus-_Premium_-_s-27.01.2026_.pdf"
-_GPB_PREMIUM_OFFICIAL = "https://www.gazprombank.ru/premium/"
+_GPB_PREMIUM_TARIFF_PDF = (
+    "https://www.gazprombank.ru/upload/files/iblock/e97/"
+    "h038o8uoge7g8zucvs80yz2sy8r9gejz/"
+    "Tarif-Gazprombank.Premium-s-22.07.2026.pdf"
+)
+_GPB_PREMIUM_BONUS_TARIFF_PDF = (
+    "https://www.gazprombank.ru/upload/files/iblock/a37/"
+    "pdmoo1wsztjxq7zl1zsl7xa8v7wpuj0z/"
+    "Usloviya-predostavleniya-fizicheskim-litsam-klientam-Banka-GPB-_AO_-"
+    "servisa-Gazprom-Bonus-Premium-_deystvuet-s-06.07.2026_.pdf"
+)
+_GPB_PREMIUM_CASHBACK_PDF = (
+    "https://www.gazprombank.ru/upload/files/iblock/474/"
+    "102zjqtow8yzfiixl6bvikr0khvb3g51/"
+    "Programma-loyalnosti-Banka-GPB-_AO_-po-nachisleniyu-keshbeka-"
+    "_deystvuet-s-01.06.2026_.pdf"
+)
+_GPB_PREMIUM_OFFICIAL = "https://www.gazprombank.ru/premium/special/pu-premium/"
 _GPB_PREMIUM_BONUS_OFFICIAL = "https://www.gazprombank.ru/premium/gazprom-bonus/"
 _GPB_PRIVATE_OFFICIAL = "https://www.gazprombank.ru/private/"
+_GPB_PRIVATE_PACKAGE_OFFICIAL = (
+    "https://www.gazprombank.ru/private/package-of-services/"
+)
+_GPB_PRIVATE_TRANSFERS_PDF = "https://www.gazprombank.ru/download/8091775/"
 _ALFA_ONLY_CARD_TARIFFS = (
     "https://alfabank.servicecdn.ru/site-upload/c1/65/275/"
     "Tariffs_Alfa_Only_Card.pdf"
+)
+_ALFA_CASH_LIMITS_OFFICIAL = (
+    "https://alfabank.ru/help/articles/debit-cards/"
+    "kak-snimat-dengi-s-karty-v-bankomate/"
 )
 _ALFA_ONLY_OFFICIAL = "https://alfabank.ru/everyday/package/premium/"
 _ALFA_ONLY_DEPOSIT_OFFICIAL = (
@@ -304,6 +331,8 @@ _ALFA_ONLY_SALARY_OFFICIAL = (
     "https://alfabank.ru/everyday/debit-cards/premium/zarplatnaya-karta/"
 )
 _ALFA_ACLUB_OFFICIAL = "https://alfabank.ru/a-club/"
+_INGO_PREMIUM_OFFICIAL = "https://ingobank.ru/premium/"
+_INGO_PREMIUM_TARIFF_PDF = "https://cdn.ingos.ru/docs/cards/Tarif_7.pdf"
 
 PRIORITY_SOURCE_URLS = {
     "official": {
@@ -313,11 +342,13 @@ PRIORITY_SOURCE_URLS = {
         "tbank_private": _TBANK_PRIVATE_TARIFF_PDF,
         "ozon_ultra": _OZON_ULTRA_TARIFF_PDF,
         "vtb_privilege": _VTB_PRIVILEGE_TARIFF_PDF,
+        "vtb_rko": _VTB_RKO_TARIFF_XLSX,
         "vtb_prime_plus": _VTB_PRIME_PLUS_TARIFF_PDF,
         "raiffeisen": _RAIF_PACKAGE_TARIFF_PDF,
-        "gazprombank": _GPB_PREMIUM_BONUS_TARIFF_PDF,
+        "gazprombank": _GPB_PREMIUM_TARIFF_PDF,
         "alfa_only": _ALFA_ONLY_CARD_TARIFFS,
         "alfa_aclub": _ALFA_ACLUB_OFFICIAL,
+        "ingo_premium": _INGO_PREMIUM_TARIFF_PDF,
     },
     "official_landing": {
         "sber_premium_levels": _SBER_PREMIUM_OFFICIAL,
@@ -330,6 +361,8 @@ PRIORITY_SOURCE_URLS = {
         "tbank_private": _TBANK_PRIVATE_OFFICIAL,
         "ozon_products": _OZON_PRODUCTS_OFFICIAL,
         "vtb_privilege": _VTB_PRIVILEGE_OFFICIAL,
+        "vtb_privilege_update_2026": _VTB_PRIVILEGE_UPDATE_2026,
+        "vtb_sbp": _VTB_SBP_OFFICIAL,
         "vtb_prime_plus": _VTB_PRIME_PLUS_OFFICIAL,
         "raiffeisen": _RAIF_PREMIUM_OFFICIAL,
         "gazprombank_premium": _GPB_PREMIUM_OFFICIAL,
@@ -339,6 +372,7 @@ PRIORITY_SOURCE_URLS = {
         "alfa_only_deposit": _ALFA_ONLY_DEPOSIT_OFFICIAL,
         "alfa_only_salary": _ALFA_ONLY_SALARY_OFFICIAL,
         "alfa_aclub": _ALFA_ACLUB_OFFICIAL,
+        "ingo_premium": _INGO_PREMIUM_OFFICIAL,
     },
     "pbi": {
         "sber": "https://premiumbanking.info/sber",
@@ -565,6 +599,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_SALARY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/1"),
                 ],
             },
@@ -576,6 +611,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/2"),
                 ],
             },
@@ -587,6 +623,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/3"),
                 ],
             },
@@ -598,6 +635,7 @@ BANKS = [
                     _src("official", _ALFA_ONLY_OFFICIAL),
                     _src("official", _ALFA_ONLY_DEPOSIT_OFFICIAL),
                     _src("official", _ALFA_ONLY_CARD_TARIFFS),
+                    _src("official", _ALFA_CASH_LIMITS_OFFICIAL),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/4"),
                 ],
             },
@@ -625,41 +663,53 @@ BANKS = [
         "tiers": [
             {
                 "tier_id": "vtb_privilege_1",
-                "tier_name": "Привилегия — уровень 1",
+                "tier_name": "Привилегия — Изумруд",
                 "segment": "0–3 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_SBP_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/1"),
                 ],
             },
             {
                 "tier_id": "vtb_privilege_2",
-                "tier_name": "Привилегия — уровень 2",
+                "tier_name": "Привилегия — Сапфир",
                 "segment": "0–3 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_SBP_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/2"),
                 ],
             },
             {
                 "tier_id": "vtb_privilege_3",
-                "tier_name": "Привилегия — уровень 3",
+                "tier_name": "Привилегия — Рубин",
                 "segment": "3–10 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_SBP_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/3"),
                 ],
             },
             {
                 "tier_id": "vtb_privilege_4",
-                "tier_name": "Привилегия — уровень 4",
+                "tier_name": "Привилегия — Бриллиант",
                 "segment": "10–25 млн ₽",
                 "sources": [
+                    _src("official", _VTB_PRIVILEGE_UPDATE_2026),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_SBP_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/4"),
                 ],
             },
@@ -729,7 +779,9 @@ BANKS = [
                 "sources": [
                     _src("official", _GPB_PREMIUM_OFFICIAL),
                     _src("official", _GPB_PREMIUM_BONUS_OFFICIAL),
+                    _src("official", _GPB_PREMIUM_TARIFF_PDF),
                     _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PREMIUM_CASHBACK_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/1"),
                 ],
             },
@@ -739,7 +791,9 @@ BANKS = [
                 "segment": "3–10 млн ₽",
                 "sources": [
                     _src("official", _GPB_PREMIUM_OFFICIAL),
+                    _src("official", _GPB_PREMIUM_TARIFF_PDF),
                     _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PREMIUM_CASHBACK_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/2"),
                 ],
             },
@@ -749,7 +803,9 @@ BANKS = [
                 "segment": "10–25 млн ₽",
                 "sources": [
                     _src("official", _GPB_PREMIUM_OFFICIAL),
+                    _src("official", _GPB_PREMIUM_TARIFF_PDF),
                     _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PREMIUM_CASHBACK_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/3"),
                 ],
             },
@@ -759,7 +815,8 @@ BANKS = [
                 "segment": "25–100 млн ₽",
                 "sources": [
                     _src("official", _GPB_PRIVATE_OFFICIAL),
-                    _src("official", _GPB_PREMIUM_BONUS_TARIFF_PDF),
+                    _src("official", _GPB_PRIVATE_PACKAGE_OFFICIAL),
+                    _src("official", _GPB_PRIVATE_TRANSFERS_PDF),
                     _src("pbi", _PBI_GAZPROMBANK, f"{_PBI_GAZPROMBANK}/4"),
                 ],
             },
@@ -867,6 +924,23 @@ BANKS = [
                     _src("official", _RAIF_PREMIUM_OFFICIAL),
                     _src("official", _RAIF_PACKAGE_TARIFF_PDF),
                     _src("pbi", _PBI_RAIFFEISEN, f"{_PBI_RAIFFEISEN}/4"),
+                ],
+            },
+        ],
+    },
+    {
+        "id": "ingo",
+        "name": "Инго Банк",
+        "type": "bank",
+        "extra_sources": [],
+        "tiers": [
+            {
+                "tier_id": "ingo_premium",
+                "tier_name": "Инго Premium",
+                "segment": "0–3 млн ₽",
+                "sources": [
+                    _src("official", _INGO_PREMIUM_OFFICIAL),
+                    _src("official", _INGO_PREMIUM_TARIFF_PDF),
                 ],
             },
         ],
@@ -1033,6 +1107,480 @@ BANKS = [
     },
 ]
 
+# Новостные страницы премиального и private banking. Они проверяются быстрым
+# монитором при каждом запуске скана; факты из отраслевых лент не заменяют
+# официальные банковские условия.
+PREMIUM_NEWS_SOURCES = [
+    {
+        "id": "sber_press",
+        "name": "Пресс-релизы Сбера",
+        "bank_id": "sber",
+        "bank": "Сбер",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://www.sberbank.com/ru/news-and-media/press-releases",
+    },
+    {
+        "id": "alfa_press",
+        "name": "Пресс-релизы Альфа-Банка",
+        "bank_id": "alfa",
+        "bank": "Альфа-Банк",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://alfabank.ru/news/",
+    },
+    {
+        "id": "vtb_press",
+        "name": "Пресс-релизы ВТБ",
+        "bank_id": "vtb",
+        "bank": "ВТБ",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://www.vtb.ru/about/press/",
+    },
+    {
+        "id": "vtb_privilege_update_2026",
+        "name": "ВТБ: обновление «Привилегии»",
+        "bank_id": "vtb",
+        "bank": "ВТБ",
+        "source_type": "official",
+        "kind": "direct",
+        "url": "https://www.vtb.ru/promo/rsvtb-pv-2/",
+    },
+    {
+        "id": "sber_premium_landing",
+        "name": "Сбер: премиальные лендинги и документы",
+        "bank_id": "sber",
+        "bank": "Сбер",
+        "source_type": "official",
+        "kind": "landing",
+        "allowed_hosts": ["www.sberbank.ru", "sberbank.ru"],
+        "url": "https://www.sberbank.com/ru/person/sb_premier_new",
+    },
+    {
+        "id": "alfa_only_landing",
+        "name": "Альфа-Банк: Alfa Only и документы",
+        "bank_id": "alfa",
+        "bank": "Альфа-Банк",
+        "source_type": "official",
+        "kind": "landing",
+        "allowed_hosts": ["alfabank.servicecdn.ru"],
+        "url": "https://alfabank.ru/everyday/package/premium/",
+    },
+    {
+        "id": "vtb_privilege_landing",
+        "name": "ВТБ: Привилегия и документы",
+        "bank_id": "vtb",
+        "bank": "ВТБ",
+        "source_type": "official",
+        "kind": "landing",
+        "allowed_hosts": ["private.vtb.ru"],
+        "url": "https://www.vtb.ru/privilegia/",
+    },
+    {
+        "id": "gazprombank_premium_landing",
+        "name": "Газпромбанк: Премиум и документы",
+        "bank_id": "gazprombank",
+        "bank": "Газпромбанк",
+        "source_type": "official",
+        "kind": "landing",
+        "allowed_hosts": ["cdn.gpb.ru"],
+        "url": "https://www.gazprombank.ru/premium/",
+    },
+    {
+        "id": "ozon_ultra_landing",
+        "name": "Ozon Банк: Ultra и документы",
+        "bank_id": "ozonbank",
+        "bank": "Озон Банк",
+        "source_type": "official",
+        "kind": "landing",
+        "allowed_hosts": ["cdn1.ozone.ru"],
+        "url": "https://finance.ozon.ru/products",
+    },
+    {
+        "id": "raiffeisen_premium_landing",
+        "name": "Райффайзен Банк: Premium и документы",
+        "bank_id": "raiffeisen",
+        "bank": "Райффайзен Банк",
+        "source_type": "official",
+        "kind": "landing",
+        "url": "https://www.raiffeisen.ru/premium/",
+    },
+    {
+        "id": "tbank_premium_landing",
+        "name": "Т-Банк: Т-Премиум и документы",
+        "bank_id": "tbank",
+        "bank": "Т-Банк",
+        "source_type": "official",
+        "kind": "landing",
+        "allowed_hosts": ["cdn.tbank.ru"],
+        "url": "https://www.tbank.ru/tinkoff-premium/",
+    },
+    {
+        "id": "ingo_premium_landing",
+        "name": "Инго Банк: премиальное обслуживание",
+        "bank_id": "ingo",
+        "bank": "Инго Банк",
+        "source_type": "official",
+        "kind": "landing",
+        "url": "https://ingobank.ru/premium/",
+    },
+    {
+        "id": "uralsib_premium_landing",
+        "name": "Уралсиб: Премиум и документы",
+        "bank_id": "uralsib",
+        "bank": "Уралсиб",
+        "source_type": "official",
+        "kind": "landing",
+        "url": "https://uralsib.ru/premium",
+    },
+    {
+        "id": "uralsib_august_2026",
+        "name": "Уралсиб: изменения с 1 августа 2026",
+        "bank_id": "uralsib",
+        "bank": "Уралсиб",
+        "source_type": "official",
+        "kind": "direct",
+        "url": "https://uralsib.ru/blog/izmeneniya-v-usloviyakh-obsluzhivaniya-paketov-uslug-dlya-fizicheskikh-lits-s-1-avgusta-2026-goda",
+    },
+    {
+        "id": "uralsib_june_2026",
+        "name": "Уралсиб: изменения с 1 июня 2026",
+        "bank_id": "uralsib",
+        "bank": "Уралсиб",
+        "source_type": "official",
+        "kind": "direct",
+        "url": "https://uralsib.ru/blog/izmeneniya-v-lineyke-paketov-uslug-dlya-fizicheskikh-lits-s-1-iyunya-2026-g",
+    },
+    {
+        "id": "sovcombank_premium_landing",
+        "name": "Совкомбанк: Xalva Premium и документы",
+        "bank_id": "sovcombank",
+        "bank": "Совкомбанк",
+        "source_type": "official",
+        "kind": "landing",
+        "allowed_hosts": ["prod-api.sovcombank.ru"],
+        "url": "https://sovcombank.ru/premium",
+    },
+    {
+        "id": "mkb_premium_landing",
+        "name": "МКБ: Премиум и документы",
+        "bank_id": "mkb",
+        "bank": "МКБ",
+        "source_type": "official",
+        "kind": "landing",
+        "url": "https://mkb.ru/premium",
+    },
+    {
+        "id": "domrf_premium_landing",
+        "name": "Банк ДОМ.РФ: Премиум и документы",
+        "bank_id": "domrf",
+        "bank": "Банк ДОМ.РФ",
+        "source_type": "official",
+        "kind": "landing",
+        "url": "https://domrfbank.ru/premium/",
+    },
+    {
+        "id": "domrf_premium_news",
+        "name": "Банк ДОМ.РФ: новости премиальным клиентам",
+        "bank_id": "domrf",
+        "bank": "Банк ДОМ.РФ",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://domrfbank.ru/press/premium-customers/",
+    },
+    {
+        "id": "uralsib_blog",
+        "name": "Уралсиб: новости и изменения",
+        "bank_id": "uralsib",
+        "bank": "Уралсиб",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://uralsib.ru/blog",
+    },
+    {
+        "id": "mkb_news",
+        "name": "МКБ: новости",
+        "bank_id": "mkb",
+        "bank": "МКБ",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://mkb.ru/news",
+    },
+    {
+        "id": "rsb_news",
+        "name": "Русский Стандарт: новости",
+        "bank_id": "rsb",
+        "bank": "Русский Стандарт",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://www.rsb.ru/press-center/publications/",
+    },
+    {
+        "id": "rsb_premium_landing",
+        "name": "Русский Стандарт: Премиум и документы",
+        "bank_id": "rsb",
+        "bank": "Русский Стандарт",
+        "source_type": "official",
+        "kind": "landing",
+        "url": "https://www.rsb.ru/LP/premium/",
+    },
+    {
+        "id": "gazprombank_press",
+        "name": "Пресс-релизы Газпромбанка",
+        "bank_id": "gazprombank",
+        "bank": "Газпромбанк",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://www.gazprombank.ru/press/press/",
+    },
+    {
+        "id": "ozonbank_news",
+        "name": "Новости Ozon Банка",
+        "bank_id": "ozonbank",
+        "bank": "Озон Банк",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://finance.ozon.ru/blog/news",
+    },
+    {
+        "id": "raiffeisen_client_news",
+        "name": "Новости для клиентов Райффайзен Банка",
+        "bank_id": "raiffeisen",
+        "bank": "Райффайзен Банк",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://www.raiffeisen.ru/about/press/news/",
+    },
+    {
+        "id": "tbank_news",
+        "name": "Новости Т-Банка",
+        "bank_id": "tbank",
+        "bank": "Т-Банк",
+        "source_type": "official",
+        "kind": "listing",
+        "url": "https://www.tbank.ru/about/news-archive/",
+    },
+    {
+        "id": "bankinform_news",
+        "name": "БанкИнформСервис",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "listing",
+        "url": "https://bankinform.ru/news",
+    },
+    {
+        "id": "ingo_telegram",
+        "name": "Официальный канал Инго Банка",
+        "bank_id": "ingo",
+        "bank": "Инго Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/ingobankru",
+    },
+    {
+        "id": "ingo_premium_launch",
+        "name": "Инго Банк: запуск премиального обслуживания",
+        "bank_id": "ingo",
+        "bank": "Инго Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "historical": True,
+        "include_urls": ["https://t.me/ingobankru/630"],
+        "url": "https://t.me/s/ingobankru?before=637",
+    },
+    {
+        "id": "vtb_telegram",
+        "name": "Официальный канал ВТБ",
+        "bank_id": "vtb",
+        "bank": "ВТБ",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/bankvtb",
+    },
+    {
+        "id": "alfa_telegram",
+        "name": "Официальный канал Альфа-Банка",
+        "bank_id": "alfa",
+        "bank": "Альфа-Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/AlfaBank",
+    },
+    {
+        "id": "alfa_only_telegram",
+        "name": "Alfa Only",
+        "bank_id": "alfa",
+        "bank": "Альфа-Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/aaa_only",
+    },
+    {
+        "id": "gazprombank_telegram",
+        "name": "Официальный канал Газпромбанка",
+        "bank_id": "gazprombank",
+        "bank": "Газпромбанк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/gazprombank",
+    },
+    {
+        "id": "sber_telegram",
+        "name": "Официальный канал Сбера",
+        "bank_id": "sber",
+        "bank": "Сбер",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/sberbank",
+    },
+    {
+        "id": "sberpremier_telegram",
+        "name": "Официальный канал СберПремьер",
+        "bank_id": "sber",
+        "bank": "Сбер",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/sberpremiernew",
+    },
+    {
+        "id": "raiffeisen_telegram",
+        "name": "Официальный канал Райффайзен Банка",
+        "bank_id": "raiffeisen",
+        "bank": "Райффайзен Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/Raiffeisenbankrus",
+    },
+    {
+        "id": "tbank_telegram",
+        "name": "Официальный канал Т-Банка",
+        "bank_id": "tbank",
+        "bank": "Т-Банк",
+        "source_type": "official",
+        "kind": "telegram",
+        "url": "https://t.me/s/tbank",
+    },
+    {
+        "id": "premiumbankinginfo_telegram",
+        "name": "Премиум Банкинг Инфо",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/premiumbankinginfo",
+    },
+    {
+        "id": "bankinform_telegram",
+        "name": "БанкИнформСервис",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/bankinform_ru",
+    },
+    {
+        "id": "frank_rg_telegram",
+        "name": "Frank RG",
+        "bank_id": "",
+        "bank": "Рынок",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/frank_rg",
+    },
+    {
+        "id": "bank_blog_telegram",
+        "name": "БанкБлог",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/bank_blog",
+    },
+    {
+        "id": "blogbankir_telegram",
+        "name": "Дайджест банковских новостей",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/blogbankir",
+    },
+    {
+        "id": "banksta_telegram",
+        "name": "Банкста",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/banksta",
+    },
+    {
+        "id": "profitanet_telegram",
+        "name": "Профита нет. А если найду?",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/profitanet",
+    },
+    {
+        "id": "mediyca_telegram",
+        "name": "Медийка",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/mediyca",
+    },
+    {
+        "id": "theblueprint_telegram",
+        "name": "The Blueprint",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/theblueprintru",
+    },
+    {
+        "id": "okeymood_telegram",
+        "name": "МУД",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/okeymood",
+    },
+    {
+        "id": "fashion_mur_telegram",
+        "name": "MUR",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/fashion_mur",
+    },
+    {
+        "id": "ksenia_solovieva_telegram",
+        "name": "Ксения Соловьёва",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/ksenia_solovieva",
+    },
+    {
+        "id": "darkmgimo_telegram",
+        "name": "Бахчисарайские гвоздики",
+        "bank_id": "",
+        "bank": "",
+        "source_type": "industry",
+        "kind": "telegram",
+        "url": "https://t.me/s/darkmgimo",
+    },
+]
+
 # Агрегаторы рыночного уровня — сканируются в --scan-all, raw-снимок для аудита
 # Обзорные страницы premiumbanking.info по банкам держим здесь, а не в sources
 # конкретных тиров: на одной странице смешаны уровни, для фактов тира
@@ -1112,6 +1660,8 @@ def registered_source_urls() -> set:
                 urls.update(source.get("urls", []))
     for source in AGGREGATORS:
         urls.update(source.get("urls", []))
+    for source in PREMIUM_NEWS_SOURCES:
+        urls.add(source["url"])
     return urls
 
 

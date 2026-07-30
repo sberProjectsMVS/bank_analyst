@@ -8,13 +8,19 @@ from unittest.mock import patch
 from openpyxl import load_workbook
 
 from landing.sber_vs import (
+    _attr_metric,
     build_sber_vs_landing,
     _benefit_display,
+    _benefit_rub_total,
     _benefits_evaluation,
+    _cashback_evaluation,
     _compensation_evaluation,
     _condition_summary,
+    _deposits_evaluation,
     _entry_match_from_text,
     _insurance_evaluation,
+    _limit_evaluation,
+    _service_presence_evaluation,
     _service_evaluation,
     _service_cost_summary,
 )
@@ -54,6 +60,168 @@ class PremiumStructuredTests(unittest.TestCase):
         "Райффайзен Банк",
         "Lifestyle-конкуренты",
     ]
+
+    def test_named_restaurant_limits_are_visible_without_details(self):
+        sber = _attr_metric("restaurants", {
+            "bank": "Сбер",
+            "tier_id": "sber_private_6",
+            "fields": {"restaurants": {"value": "безлимит по 5000 ₽"}},
+        })
+        aclub = _attr_metric("restaurants", {
+            "bank": "Альфа-Банк",
+            "tier_id": "alfa_aclub",
+            "fields": {"restaurants": {"value": "безлимит по 2500 ₽"}},
+        })
+
+        self.assertEqual(
+            sber["value"],
+            "Включено постоянно: безлимит по 5000 ₽ — опция «Рестораны» "
+            "2 чека в день",
+        )
+        self.assertEqual(sber["details"], "")
+        self.assertIn("один чек за одну дату до 5 000 ₽", aclub["value"])
+        self.assertIn("общий лимит с бизнес-залами", aclub["value"])
+        self.assertEqual(aclub["details"], "")
+
+    def test_alfa_supreme_simpleprive_and_aclub_rate_are_confirmed(self):
+        for tier_id in (
+            "alfa_only_1", "alfa_only_2", "alfa_only_3", "alfa_only_4",
+        ):
+            with self.subTest(tier_id=tier_id):
+                facts = curated_for(tier_id)
+                self.assertIn("МИР Supreme", facts["supreme"]["value"])
+                self.assertIn("SimplePrivé", facts["ecosystem"]["value"])
+                self.assertIn("SimpleWine", facts["ecosystem"]["value"])
+
+        aclub = curated_for("alfa_aclub")
+        self.assertIn("14%", aclub["deposits"]["value"])
+        self.assertIn("МИР Supreme", aclub["supreme"]["value"])
+
+    def test_multiple_deposit_rates_use_published_maximum(self):
+        premium = _deposits_evaluation(
+            "фиксированная ставка до 13,65%; плавающая ставка до 16,85%; "
+            "накопительный счёт до 13,30%",
+            "2026-07-24",
+        )
+
+        self.assertEqual(premium["status"], "comparable")
+        self.assertEqual(premium["metrics"]["rate"], 16.85)
+        self.assertIn("до 16.85%", premium["summary"])
+
+    def test_confirmed_other_benefits_are_comparable_without_status_tag(self):
+        evaluation = _benefits_evaluation(
+            "• Подписка Ozon Premium\n"
+            "• Компенсация Ozon Select — 2 посещения в месяц на 2500 ₽\n"
+            "• Медицинская программа",
+            None,
+        )
+
+        self.assertEqual(evaluation["status"], "comparable")
+        self.assertEqual(
+            evaluation["metrics"]["benefits"]["компенсация ozon select"]["rub_total"],
+            5_000,
+        )
+        self.assertIn("3 с подтверждённым наличием", evaluation["summary"])
+        self.assertEqual(
+            _benefit_rub_total(
+                "можно получать промокоды на 1000 от Яндекс Еды"
+            ),
+            1_000,
+        )
+        self.assertEqual(
+            _benefit_rub_total(
+                "промокоды на 2 000 ₽ от Яндекс Еды и Яндекс Go"
+            ),
+            2_000,
+        )
+
+    def test_gpb_sport_bonus_rubles_are_comparable(self):
+        amounts = [
+            _benefit_rub_total(
+                f"Фитмост ({amount} бонусных рублей в мес на спорт и спа)"
+            )
+            for amount in ("3000", "9000", "15000")
+        ]
+
+        self.assertEqual(amounts, [3_000, 9_000, 15_000])
+
+    def test_gpb_current_card_facts_and_comparison_metrics(self):
+        for tier_id in ("gpb_premium_1", "gpb_premium_2", "gpb_premium_3"):
+            with self.subTest(tier_id=tier_id):
+                facts = curated_for(tier_id)
+                cashback = facts["cashback"]
+                self.assertIn("до 6%", cashback["value"])
+                self.assertIn("40 000 бонусных баллов", cashback["value"])
+                self.assertIn("01.06.2026", cashback["source_url"])
+                self.assertIn("200 000 ₽ в месяц", facts["transfers_payments"]["value"])
+                self.assertIn("50 000 ₽ в месяц", facts["transfers_payments"]["value"])
+                self.assertIn("до 1 000 000 ₽", facts["cash_withdrawal"]["value"])
+                self.assertIn("МИР Supreme", facts["supreme"]["value"])
+
+        premium = curated_for("gpb_premium_1")
+        cashback_eval = _cashback_evaluation(premium["cashback"]["value"])
+        self.assertEqual(cashback_eval["metrics"]["max_rate"], 6)
+        self.assertEqual(cashback_eval["metrics"]["monthly_bonus_cap"], 40_000)
+        self.assertEqual(cashback_eval["metrics"]["monthly_cap"], 40_000)
+
+        transfer_eval = _limit_evaluation(
+            premium["transfers_payments"]["value"], "transfers_payments"
+        )
+        self.assertEqual(
+            [item["amount"] for item in transfer_eval["metrics"]["limits"]],
+            [200_000, 50_000],
+        )
+        cash_eval = _limit_evaluation(
+            premium["cash_withdrawal"]["value"], "cash_withdrawal"
+        )
+        self.assertTrue(cash_eval["metrics"]["unlimited"])
+        self.assertIn("при выполнении условий", cash_eval["summary"])
+
+        private = curated_for("gpb_private")
+        self.assertIn("до 20%", private["cashback"]["value"])
+        self.assertIn("карта PRIME", private["supreme"]["value"])
+        self.assertIn("2% от суммы", private["transfers_payments"]["value"])
+        private_card = _service_presence_evaluation(
+            private["supreme"]["value"], "supreme"
+        )
+        self.assertEqual(private_card["metrics"]["card_tier_rank"], 5)
+
+        self.assertIn(
+            "22.07.2026", PRIORITY_SOURCE_URLS["official"]["gazprombank"]
+        )
+
+    def test_vtb_prime_concierge_is_not_weaker_by_wording(self):
+        prime = curated_for("vtb_prime_8")["concierge"]["value"]
+        evaluation = _service_presence_evaluation(prime, "concierge")
+
+        self.assertEqual(evaluation["metrics"]["service_rank"], 4)
+        self.assertEqual(evaluation["metrics"]["round_the_clock"], 1)
+
+    def test_private_and_last_level_facts_cover_reported_gaps(self):
+        self.assertIn("16,85%", curated_for("gpb_private")["deposits"]["value"])
+        raif = curated_for("raif_premium_4")["ecosystem"]["value"]
+        self.assertIn("промокоды на 2 000 ₽", raif)
+        self.assertIn("сертификаты на 7 000 ₽", raif)
+        rendered = json.dumps(
+            build_other_benefits({"ecosystem": merged(raif)}),
+            ensure_ascii=False,
+        )
+        self.assertIn("промокоды на 2 000 ₽", rendered)
+        self.assertIn("сертификаты на 7 000 ₽", rendered)
+
+    def test_vtb_package_rules_do_not_leak_into_other_benefits(self):
+        benefits = build_other_benefits({
+            "ecosystem": merged(
+                "По тарифам платно со 2го года для 15М остатков — "
+                "100 тыс ₽ в год | Учёт остатков раз в год | "
+                "Помощь на дорогах — эвакуатор"
+            ),
+        })
+        dumped = json.dumps(benefits, ensure_ascii=False)
+
+        self.assertNotIn("По тарифам платно", dumped)
+        self.assertNotIn("Учёт остатков", dumped)
+        self.assertIn("Помощь на дорогах", dumped)
 
     def test_other_benefits_compare_same_service_by_confirmed_nominal(self):
         lower = _benefits_evaluation(
@@ -95,8 +263,17 @@ class PremiumStructuredTests(unittest.TestCase):
         )
         self.assertEqual(evaluation["metrics"]["coverage"], 150_000)
         self.assertEqual(evaluation["metrics"]["secondary_coverage"], 35_000)
+        self.assertAlmostEqual(
+            evaluation["metrics"]["coverage_rub"],
+            150_000 * 78.4049,
+        )
+        self.assertAlmostEqual(
+            evaluation["metrics"]["secondary_coverage_rub"],
+            35_000 * 78.4049,
+        )
         self.assertIn("владелец: 150000 $", evaluation["summary"])
         self.assertIn("член семьи: 35000 $", evaluation["summary"])
+        self.assertIn("официальному курсу ЦБ", evaluation["reason"])
 
         display = _benefit_display(
             "insurance",
@@ -115,6 +292,32 @@ class PremiumStructuredTests(unittest.TestCase):
         )
         self.assertIn("$150 тыс для владельца", family_display)
         self.assertIn("$35 тыс для члена семьи", family_display)
+
+    def test_insurance_cross_currency_uses_cbr_ruble_equivalent(self):
+        usd = _insurance_evaluation("$100/100 тыс, 90 дн")
+        eur = _insurance_evaluation("€200/50 тыс, 60 дн")
+
+        self.assertEqual(usd["scope"]["currency"], "$")
+        self.assertEqual(eur["scope"]["currency"], "€")
+        self.assertAlmostEqual(
+            usd["metrics"]["coverage_rub"],
+            100_000 * 78.4049,
+        )
+        self.assertAlmostEqual(
+            eur["metrics"]["coverage_rub"],
+            200_000 * 89.4443,
+        )
+        self.assertGreater(
+            eur["metrics"]["coverage_rub"],
+            usd["metrics"]["coverage_rub"],
+        )
+
+        landing_source = Path("landing/sber_vs.py").read_text(encoding="utf-8")
+        self.assertIn(
+            "metric('coverage_rub', metric('coverage'))",
+            landing_source,
+        )
+        self.assertNotIn("currencies.size > 1", landing_source)
 
     def test_entry_match_prefers_pure_capital_over_combined_lower_route(self):
         match = _entry_match_from_text(
@@ -160,10 +363,10 @@ class PremiumStructuredTests(unittest.TestCase):
         self.assertNotIn("зп", summary.lower())
 
         vtb = curated_for("vtb_privilege_1")["entry_conditions"]
-        self.assertIn("зарплата 300 тыс ₽", vtb["value"])
-        self.assertIn("зарплата 700 тыс ₽", vtb["value"])
-        self.assertIn("три полных последовательных", vtb["value"])
-        self.assertIn("vtb.ru/privilegia", vtb["source_url"])
+        self.assertIn("Изумруд", vtb["value"])
+        self.assertIn("до 2,5 млн ₽", vtb["value"])
+        self.assertIn("до 2 млн ₽", vtb["value"])
+        self.assertIn("vtb.ru/promo/rsvtb-pv-2", vtb["source_url"])
 
         expected = {
             "tbank_silver": "зарплата 400 тыс ₽",
@@ -803,8 +1006,9 @@ class PremiumStructuredTests(unittest.TestCase):
     def test_aclub_missing_card_terms_not_invented(self):
         facts = curated_for("alfa_aclub")
 
-        self.assertIn("Повышенный доход", facts["deposits"]["value"])
-        self.assertIn("alfabank.ru/a-club", facts["deposits"]["source_url"])
+        self.assertIn("до 14%", facts["deposits"]["value"])
+        self.assertIn("deposits_alfa_fin_club_26062026.pdf",
+                      facts["deposits"]["source_url"])
         self.assertEqual(facts["card_terms"]["value"], NOT_FOUND)
         self.assertIn("не переносятся", facts["card_terms"]["note"])
 
@@ -1610,6 +1814,9 @@ class PremiumStructuredTests(unittest.TestCase):
             html,
         )
         self.assertIn("!ALWAYS_SHOW_FIELDS.has(baseAttr.id)", html)
+        self.assertIn('"tier_id": "sber_premier_1"', html)
+        self.assertIn("gazprombankTransferHierarchyFallback", html)
+        self.assertIn("Private — старший уровень", html)
 
     def test_pbi_parser_extracts_new_bank_fields_without_cross_tier_transfer(self):
         html = """
@@ -1748,8 +1955,9 @@ class PremiumStructuredTests(unittest.TestCase):
         alfa_only = curated_for("alfa_only_2")
         self.assertIn("до 100 000 ₽ в месяц", alfa_only["transfers_payments"]["value"])
         self.assertIn("Снятие наличных", alfa_only["cash_withdrawal"]["value"])
-        self.assertIn("Supreme в тарифе карты Alfa Only не заявлен", alfa_only["supreme"]["value"])
-        self.assertIn("Tariffs_Alfa_Only_Card.pdf", alfa_only["supreme"]["source_url"])
+        self.assertIn("МИР Supreme доступна клиентам Alfa Only",
+                      alfa_only["supreme"]["value"])
+        self.assertIn("mir-supreme-short", alfa_only["supreme"]["source_url"])
 
     def test_tbank_pdf_transfer_cash_and_supreme_curated(self):
         premium = curated_for("tbank_gold")
@@ -1765,6 +1973,25 @@ class PremiumStructuredTests(unittest.TestCase):
         self.assertIn("в 10 раз больше", private["cash_withdrawal"]["value"])
         self.assertIn("активном сервисе Private", private["supreme"]["value"])
         self.assertIn("docs-terms-of-service-private.pdf", private["supreme"]["source_url"])
+
+    def test_vtb_privilege_sbp_limits_are_curated_from_official_sources(self):
+        for tier_id in (
+            "vtb_privilege_1",
+            "vtb_privilege_2",
+            "vtb_privilege_3",
+            "vtb_privilege_4",
+        ):
+            with self.subTest(tier_id=tier_id):
+                fact = curated_for(tier_id)["transfers_payments"]
+                self.assertIn("до 1 млн ₽ за один перевод и в сутки", fact["value"])
+                self.assertIn("до 10 млн ₽ в месяц", fact["value"])
+                self.assertIn("до 30 млн ₽ в месяц", fact["value"])
+                self.assertEqual(
+                    fact["source_url"],
+                    "https://www.vtb.ru/personal/online-servisy/perevody-sbp/",
+                )
+                self.assertIn("t_rko.xlsx", fact["note"])
+                self.assertEqual(fact["date_checked"], "2026-07-24")
 
     def test_ozon_ultra_pdf_transfer_cash_and_supreme_curated(self):
         bronze = curated_for("ozonbank_ultra_bronze")
