@@ -19,6 +19,10 @@ import requests
 
 from scanner.sources import REQUEST_PAUSE, REQUEST_TIMEOUT
 
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 log = logging.getLogger("scanner.fetch")
 
 USER_AGENT = (
