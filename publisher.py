@@ -13,6 +13,7 @@ from config import (
     BASE_DIR,
     GENERATED_HTML,
     OUTPUT_DIR,
+    PUBLISH_BRANCH,
     PUBLISHED_HTML,
     PUBLISH_EXTRA_ASSETS,
     SITE_REPOSITORY,
@@ -41,6 +42,8 @@ def publish_site(html_path: Optional[Path] = None) -> bool:
     site_repo = _resolve_path(SITE_REPOSITORY, BASE_DIR)
     if not _validate_paths(source_html, site_repo):
         return False
+    if not _prepare_repository(site_repo):
+        return False
 
     log.info("Copying generated HTML...")
     try:
@@ -65,18 +68,50 @@ def publish_site(html_path: Optional[Path] = None) -> bool:
     if not _run_git(["commit", "-m", COMMIT_MESSAGE, "--", *published_paths], site_repo):
         return False
 
-    log.info("Running git pull --rebase...")
-    if not _run_git(["pull", "--rebase"], site_repo):
-        return False
-
     log.info("Running git push...")
-    push_result = _run_git(["push"], site_repo)
+    push_result = _run_git(["push", "origin", PUBLISH_BRANCH], site_repo)
     if not push_result:
         log.error("Git push failed; publication files were committed locally.")
+        return False
+    if not _verify_remote_head(site_repo):
+        log.error("Git push returned success, but origin/%s was not verified.",
+                  PUBLISH_BRANCH)
         return False
 
     log.info("Publication completed successfully.")
     return True
+
+
+def _prepare_repository(site_repo: Path) -> bool:
+    """Require a clean branch state and update it before creating a commit."""
+    git_dir = site_repo / ".git"
+    if any((git_dir / marker).exists() for marker in (
+        "rebase-merge", "rebase-apply", "MERGE_HEAD", "CHERRY_PICK_HEAD",
+    )):
+        log.error("Publication repository has an unfinished Git operation.")
+        return False
+
+    branch = _git_output(["branch", "--show-current"], site_repo)
+    if branch != PUBLISH_BRANCH:
+        shown = branch or "detached HEAD"
+        log.error("Publication repository must be on %s; current state: %s.",
+                  PUBLISH_BRANCH, shown)
+        return False
+
+    log.info("Updating publication branch before copying files...")
+    return _run_git(
+        ["pull", "--rebase", "origin", PUBLISH_BRANCH], site_repo,
+    )
+
+
+def _verify_remote_head(site_repo: Path) -> bool:
+    """Confirm that the remote publication branch points at local HEAD."""
+    local_head = _git_output(["rev-parse", "HEAD"], site_repo)
+    remote_line = _git_output(
+        ["ls-remote", "origin", f"refs/heads/{PUBLISH_BRANCH}"], site_repo,
+    )
+    remote_head = remote_line.split()[0] if remote_line else ""
+    return bool(local_head and remote_head and local_head == remote_head)
 
 
 def _resolve_generated_html(html_path: Optional[Path]) -> Path:
@@ -163,6 +198,21 @@ def _run_git(args: list[str], repo_path: Path) -> bool:
         _log_git_error(result)
         return False
     return True
+
+
+def _git_output(args: list[str], repo_path: Path) -> str:
+    """Run a read-only git command and return stripped stdout."""
+    result = subprocess.run(
+        [GIT, *args],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        _log_git_error(result)
+        return ""
+    return result.stdout.strip()
 
 
 def _log_git_error(result: subprocess.CompletedProcess[str]) -> None:

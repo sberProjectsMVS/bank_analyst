@@ -284,9 +284,13 @@ def run_scan(mode: str, bank_id: str = None):
     write_report(history, OUTPUT_PATH)
     write_comparison_json(history, COMPARISON_JSON_PATH)
     html_generated = False
+    github_pages_published = False
     if mode == "all":
-        build_full_scan_outputs()
+        full_output_stats = build_full_scan_outputs()
         html_generated = True
+        github_pages_published = bool(
+            full_output_stats["sber_vs"].get("published")
+        )
 
     _write_run_reports(
         run_id=_run_id(scan_dt),
@@ -299,7 +303,7 @@ def run_scan(mode: str, bank_id: str = None):
         quality_issues=quality_issues,
         excel_updated=True,
         html_generated=html_generated,
-        github_pages_published=html_generated,
+        github_pages_published=github_pages_published,
     )
 
     log.info("")
@@ -313,6 +317,10 @@ def run_scan(mode: str, bank_id: str = None):
              new_scan["meta"]["quality_warnings"])
     log.info("Отчёт: %s", OUTPUT_PATH)
     log.info("Техлог: %s", SERVICE_LOG_PATH)
+    return {
+        "html_generated": html_generated,
+        "github_pages_published": github_pages_published,
+    }
 
 
 def _fill_stats_entries(changes: list, new_scan: dict) -> list:
@@ -373,7 +381,9 @@ def build_sber_vs_only():
     log.info("Лендинг Сбер VS банки собран: %s", stats["output"])
     log.info("Банков: %d; уровней пакетов: %d",
              stats["banks"], stats["levels"])
-    publish_site(Path(stats["output"]))
+    stats["published"] = publish_site(Path(stats["output"]))
+    if not stats["published"]:
+        log.error("Лендинг собран локально, но GitHub Pages не обновлён.")
     return stats
 
 
@@ -503,6 +513,7 @@ def build_full_scan_outputs():
     log.info("JSON сравнения: %s", COMPARISON_JSON_PATH)
     log.info("Сравнение банков: %s", sber_vs_stats["output"])
     log.info("Новые изменения банков: %s", premium_stats["output"])
+    return {"sber_vs": sber_vs_stats, "premium_changes": premium_stats}
 
 
 def main():
@@ -539,7 +550,9 @@ def main():
     if args.list_sources:
         list_sources()
     elif args.build_sber_vs:
-        build_sber_vs_only()
+        stats = build_sber_vs_only()
+        if not stats.get("published"):
+            raise SystemExit(2)
     elif args.build_premium_changes:
         build_premium_changes_only()
     elif args.sync_premium_news:
@@ -558,7 +571,9 @@ def main():
     elif args.scan_lifestyle:
         run_scan("lifestyle")
     else:
-        run_scan("all")
+        stats = run_scan("all")
+        if not stats.get("github_pages_published"):
+            raise SystemExit(2)
 
 
 if __name__ == "__main__":
