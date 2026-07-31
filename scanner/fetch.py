@@ -66,7 +66,7 @@ class Fetcher:
             rp = urllib.robotparser.RobotFileParser()
             try:
                 resp = self._session.get(
-                    origin + "/robots.txt", timeout=REQUEST_TIMEOUT
+                    origin + "/robots.txt", timeout=REQUEST_TIMEOUT, verify=False,
                 )
                 if resp.status_code == 200:
                     rp.parse(resp.text.splitlines())
@@ -124,7 +124,7 @@ class Fetcher:
             self._throttle()
             try:
                 resp = self._session.get(
-                    url, timeout=REQUEST_TIMEOUT, allow_redirects=True
+                    url, timeout=REQUEST_TIMEOUT, allow_redirects=True, verify=False,
                 )
             except requests.RequestException as exc:
                 last_error = f"{type(exc).__name__}: {exc}"
