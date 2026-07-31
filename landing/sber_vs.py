@@ -29,6 +29,12 @@ from scanner.sources import NOT_FOUND, NOT_FOUND_AVAILABLE
 
 INTL_SEGMENT = "digital-first (межд.)"
 
+# GitHub Pages keeps HTML in intermediary and browser caches for a short time.
+# A time-bucketed URL makes a reopened tab validate the landing regularly,
+# including after the browser restores it from the back-forward cache.
+CANONICAL_SITE_URL = "https://sberprojectsmvs.github.io/bank_cite/"
+FRESHNESS_INTERVAL_MS = 10 * 60 * 1000
+
 # Официальные курсы Банка России на дату текущего набора данных.
 # Источник: https://www.cbr.ru/currency_base/daily/
 # Значения нужны только для сопоставления страховых сумм в USD и EUR;
@@ -384,6 +390,11 @@ def render_html(banks: list[dict], rows: list[dict], changes: list[dict] = None)
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="canonical" href="{CANONICAL_SITE_URL}">
+  <script>{_FRESHNESS_JS}</script>
   <title>Сравнение премиальных пакетов банков</title>
   <style>{_CSS}{premium_changes.changes_css(embedded=True)}</style>
 </head>
@@ -457,6 +468,29 @@ def render_html(banks: list[dict], rows: list[dict], changes: list[dict] = None)
   <script>{premium_changes.changes_js()}{_JS}</script>
 </body>
 </html>"""
+
+
+_FRESHNESS_JS = f"""
+(function () {{
+  const canonical = new URL({json.dumps(CANONICAL_SITE_URL)});
+  const intervalMs = {FRESHNESS_INTERVAL_MS};
+
+  function refreshStalePage() {{
+    if (location.hostname !== canonical.hostname
+        || location.pathname !== canonical.pathname) return;
+    const url = new URL(location.href);
+    const currentBucket = String(Math.floor(Date.now() / intervalMs));
+    if (url.searchParams.get('_fresh') === currentBucket) return;
+    url.searchParams.set('_fresh', currentBucket);
+    location.replace(url.toString());
+  }}
+
+  refreshStalePage();
+  addEventListener('pageshow', (event) => {{
+    if (event.persisted) refreshStalePage();
+  }});
+}})();
+""".strip()
 
 
 # ---------- значения и форматирование ----------

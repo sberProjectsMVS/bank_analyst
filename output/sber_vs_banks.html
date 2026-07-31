@@ -3,6 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="canonical" href="https://sberprojectsmvs.github.io/bank_cite/">
+  <script>(function () {
+  const canonical = new URL("https://sberprojectsmvs.github.io/bank_cite/");
+  const intervalMs = 600000;
+
+  function refreshStalePage() {
+    if (location.hostname !== canonical.hostname
+        || location.pathname !== canonical.pathname) return;
+    const url = new URL(location.href);
+    const currentBucket = String(Math.floor(Date.now() / intervalMs));
+    if (url.searchParams.get('_fresh') === currentBucket) return;
+    url.searchParams.set('_fresh', currentBucket);
+    location.replace(url.toString());
+  }
+
+  refreshStalePage();
+  addEventListener('pageshow', (event) => {
+    if (event.persisted) refreshStalePage();
+  });
+})();</script>
   <title>Сравнение премиальных пакетов банков</title>
   <style>
 :root {

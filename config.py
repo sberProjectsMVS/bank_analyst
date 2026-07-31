@@ -17,6 +17,7 @@ COMPARISON_JSON = "comparison_data.json"
 
 # GitHub Pages entrypoint in the publication repository.
 PUBLISHED_HTML = "index.html"
+PUBLISH_BRANCH = "main"
 
 # Additional generated site assets can be added later as (source, destination)
 # path pairs relative to BASE_DIR and SITE_REPOSITORY.

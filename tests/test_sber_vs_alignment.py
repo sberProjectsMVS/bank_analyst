@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from landing.sber_vs import (
+    CANONICAL_SITE_URL,
+    FRESHNESS_INTERVAL_MS,
     _JS,
     _lounge_evaluation,
     build_payload,
@@ -86,6 +88,21 @@ class SberVsAlignmentTests(unittest.TestCase):
         self.assertIn("--compare-level-count: 2", html)
         self.assertIn("grid-template-columns: var(--compare-grid-template);", html)
         self.assertNotIn("renderRecommendations()", html)
+
+    def test_generated_html_avoids_stale_github_pages_cache(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output = self._write_fixture(tmp)
+            html = output.read_text(encoding="utf-8")
+
+        self.assertIn(
+            '<meta http-equiv="Cache-Control" '
+            'content="no-cache, no-store, must-revalidate">',
+            html,
+        )
+        self.assertIn(f'<link rel="canonical" href="{CANONICAL_SITE_URL}">', html)
+        self.assertIn(f"const intervalMs = {FRESHNESS_INTERVAL_MS};", html)
+        self.assertIn("url.searchParams.set('_fresh', currentBucket);", html)
+        self.assertIn("if (event.persisted) refreshStalePage();", html)
 
     def test_payload_keeps_all_banks_levels_and_long_names(self):
         with tempfile.TemporaryDirectory() as tmp:
