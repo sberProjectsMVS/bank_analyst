@@ -46,13 +46,34 @@ jobs:
         run: |
           .venv/bin/python -m playwright install --with-deps chromium
 
-      - name: Run full scan
-        run: .venv/bin/python main.py --scan-all
+            - name: Run full scan
+        run: |
+          set +e
+
+          .venv/bin/python main.py --scan-all
+          exit_code=$?
+
+          echo "Scanner exit code: $exit_code"
+
+          if [ "$exit_code" -ne 0 ] && [ "$exit_code" -ne 2 ]; then
+            exit "$exit_code"
+          fi
+
+          exit 0
 
       - name: Check generated landing
         run: |
           test -f output/sber_vs_banks.html
           test -s output/sber_vs_banks.html
+
+      - name: Upload generated HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-site
+          path: |
+            output/sber_vs_banks.html
+            output/premium_changes.html
+          retention-days: 30
 
       - name: Clone bank_cite
         env:
