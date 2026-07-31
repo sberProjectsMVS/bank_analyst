@@ -40,6 +40,11 @@ jobs:
         run: |
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt
+          .venv/bin/pip install playwright
+
+      - name: Install Playwright Chromium
+        run: |
+          .venv/bin/python -m playwright install --with-deps chromium
 
       - name: Run full scan
         run: .venv/bin/python main.py --scan-all
