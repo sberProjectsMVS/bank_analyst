@@ -12,6 +12,10 @@ from landing.sber_vs import (
     FRESHNESS_INTERVAL_MS,
     _JS,
     _lounge_evaluation,
+    _entry_evaluation,
+    _compensation_evaluation,
+    _insurance_evaluation,
+    _sport_beauty_evaluation,
     build_payload,
     build_sber_vs_landing,
     load_summary_rows,
@@ -23,6 +27,22 @@ def _field(value):
 
 
 class SberVsAlignmentTests(unittest.TestCase):
+    def test_sport_beauty_highlights_direct_access_over_selectable_option(self):
+        selectable = _sport_beauty_evaluation(
+            "Опция «Спорт и красота» (6000 бонусных рублей Фитмост)"
+        )
+        direct = _sport_beauty_evaluation(
+            "5 тыс баллов в год в сервисе appoint — включено постоянно"
+        )
+
+        self.assertEqual(selectable["status"], "comparable")
+        self.assertEqual(direct["status"], "comparable")
+        self.assertLess(
+            selectable["metrics"]["service_rank"],
+            direct["metrics"]["service_rank"],
+        )
+        self.assertIn("не сопоставляются", direct["reason"])
+
     def _write_fixture(self, tmp):
         rows = []
         banks = [
@@ -82,6 +102,9 @@ class SberVsAlignmentTests(unittest.TestCase):
         self.assertIn('id="pair-list" class="pair-list"', html)
         self.assertIn('id="expand-all"', html)
         self.assertIn('id="collapse-all"', html)
+        self.assertIn("Выгрузить PDF этого уровня", html)
+        self.assertIn("function exportLevelPdf(", html)
+        self.assertIn("html2canvas(pairElement", html)
         self.assertIn("function alignLevels(", html)
         self.assertIn("function levelCompatibility(", html)
         self.assertIn("relativeDistance > 0.5", html)
@@ -204,7 +227,7 @@ console.log(JSON.stringify(alignedFixture.map((pair) => ({
             ("a100", "b100"),
         })
 
-    def test_more_lounge_access_programs_wins_when_both_are_unlimited(self):
+    def test_access_program_count_is_informational_when_visits_are_equal(self):
         if not shutil.which("node"):
             self.skipTest("Node.js is unavailable")
         left = _lounge_evaluation(
@@ -243,8 +266,328 @@ console.log(JSON.stringify(rankEvaluations(loungeEntries)));
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        ranks = {item["side"]: item["label"] for item in json.loads(result.stdout)}
-        self.assertEqual(ranks, {"a": "слабее", "b": "сильнее"})
+        ranks = {item["side"]: item for item in json.loads(result.stdout)}
+        self.assertEqual(
+            {side: item["status"] for side, item in ranks.items()},
+            {"a": "equal", "b": "equal"},
+        )
+        self.assertTrue(all(
+            item["cls"] == "rank-mid" and item["label"] == "равно"
+            for item in ranks.values()
+        ))
+
+    def test_two_preferences_normalize_to_two_lounge_visits(self):
+        evaluation = _lounge_evaluation(
+            "До 2 проходов в месяц, если направить весь общий баланс "
+            "(2 преференции в месяц из общего баланса; "
+            "1 преференция = 1 использование выбранного сервиса) "
+            "на бизнес-залы."
+        )
+        self.assertEqual(evaluation["metrics"]["visits_monthly"], 2)
+        self.assertEqual(evaluation["metrics"]["shared_preference_pool"], 1)
+        self.assertIn("общего баланса", evaluation["reason"])
+
+    def test_entry_evaluation_accounts_for_and_or_structure(self):
+        single = _entry_evaluation("3 млн ₽ на счетах")
+        combined = _entry_evaluation("2 млн ₽ на счетах и траты 100 тыс ₽ в месяц")
+        alternatives = _entry_evaluation(
+            "3 млн ₽ на счетах или 2 млн ₽ на счетах и траты 100 тыс ₽ в месяц"
+        )
+        self.assertEqual(single["metrics"]["mandatory_count"], 1)
+        self.assertEqual(combined["metrics"]["mandatory_count"], 2)
+        self.assertEqual(alternatives["metrics"]["alternative_count"], 2)
+        self.assertEqual(alternatives["directions"]["alternative_count"], "higher")
+        self.assertIn("«И»", alternatives["reason"])
+
+        sber = _entry_evaluation(
+            "3 млн ₽; или траты 200 тыс ₽; или 8000 акций (≈2,200,000₽)"
+        )
+        vtb = _entry_evaluation(
+            "Москва: активы от 2,5 млн ₽ либо активы от 1,5 млн ₽ и "
+            "покупки от 125 000 ₽ в месяц. Другие регионы: активы от "
+            "2 млн ₽ либо активы от 1,5 млн ₽ и покупки от 100 000 ₽ в месяц"
+        )
+        self.assertEqual(sber["metrics"]["standalone_capital_threshold"], 3_000_000)
+        self.assertEqual(vtb["metrics"]["standalone_capital_threshold"], 2_500_000)
+
+    def test_vtb_sapphire_entry_threshold_ranks_stronger_than_sber_level_2(self):
+        if not shutil.which("node"):
+            self.skipTest("Node.js is unavailable")
+        sber = _entry_evaluation(
+            "3 млн ₽; или траты 200 тыс ₽; или 8000 акций (≈2,200,000₽)"
+        )
+        vtb = _entry_evaluation(
+            "Москва: активы от 2,5 млн ₽ либо активы от 1,5 млн ₽ и "
+            "покупки от 125 000 ₽ в месяц. Другие регионы: активы от "
+            "2 млн ₽ либо активы от 1,5 млн ₽ и покупки от 100 000 ₽ в месяц"
+        )
+        algorithm = _JS.split("SIDES.forEach", 1)[0]
+        algorithm = algorithm.replace(
+            "const DATA = JSON.parse(document.getElementById('data').textContent);",
+            "const DATA = [];",
+        ).replace(
+            "document.documentElement.classList.add('js-ready');", "",
+        )
+        scenario = f"""
+const entryRanks = rankEvaluations([
+  {{side:'a',attr:{{id:'entry_conditions',value:'Сбер'}},
+    evaluation:{json.dumps(sber, ensure_ascii=False)}}},
+  {{side:'b',attr:{{id:'entry_conditions',value:'ВТБ'}},
+    evaluation:{json.dumps(vtb, ensure_ascii=False)}}}
+]);
+console.log(JSON.stringify(entryRanks));
+"""
+        result = subprocess.run(
+            ["node"], input=algorithm + scenario, text=True,
+            capture_output=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        ranks = json.loads(result.stdout)
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in ranks],
+            [("rank-low", "слабее"), ("rank-best", "сильнее")],
+        )
+        self.assertIn("3 млн ₽ против 2,5 млн ₽", ranks[0]["reason"])
+
+    def test_sber_vtb_lounges_equal_and_vtb_cashback_cap_is_stronger(self):
+        if not shutil.which("node"):
+            self.skipTest("Node.js is unavailable")
+        algorithm = _JS.split("SIDES.forEach", 1)[0]
+        algorithm = algorithm.replace(
+            "const DATA = JSON.parse(document.getElementById('data').textContent);",
+            "const DATA = [];",
+        ).replace(
+            "document.documentElement.classList.add('js-ready');",
+            "",
+        )
+        sber_lounge = _lounge_evaluation(
+            "2 посещения в месяц. Доступ через Mir Pass."
+        )
+        vtb_lounge = _lounge_evaluation(
+            "До 2 проходов в месяц из общего баланса: 2 преференции в месяц; "
+            "1 преференция = 1 использование выбранного сервиса. "
+            "Доступ через ON·PASS и ON·PASS Premium."
+        )
+        scenario = f"""
+const lounge = rankEvaluations([
+  {{side:'a', bank:'Сбер', tierId:'sber_premier_2',
+    attr:{{id:'lounge_access', value:'2 посещения'}},
+    evaluation:{json.dumps(sber_lounge, ensure_ascii=False)}}},
+  {{side:'b', bank:'ВТБ', tierId:'vtb_privilege_2',
+    attr:{{id:'lounge_access', value:'2 прохода'}},
+    evaluation:{json.dumps(vtb_lounge, ensure_ascii=False)}}}
+]);
+const cashback = rankEvaluations([
+  {{side:'a', bank:'Сбер', tierId:'sber_premier_2',
+    attr:{{id:'cashback', value:'до 10%, 5 категорий, 20 000 бонусов'}},
+    evaluation:{{status:'comparable', method:'cashback',
+      metrics:{{max_rate:10,categories:5,monthly_bonus_cap:20000}},
+      directions:{{max_rate:'higher',categories:'higher',monthly_bonus_cap:'higher'}},
+      scope:{{}}, summary:'до 10%'}}}},
+  {{side:'b', bank:'ВТБ', tierId:'vtb_privilege_2',
+    attr:{{id:'cashback', value:'5 категорий, до 30 000 ₽'}},
+    evaluation:{{status:'comparable', method:'cashback',
+      metrics:{{categories:5,monthly_cap:30000}},
+      directions:{{categories:'higher',monthly_cap:'higher'}},
+      scope:{{}}, summary:'ставка не опубликована'}}}}
+]);
+console.log(JSON.stringify({{lounge, cashback}}));
+"""
+        result = subprocess.run(
+            ["node"], input=algorithm + scenario, text=True,
+            capture_output=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(
+            [item["status"] for item in report["lounge"]],
+            ["equal", "equal"],
+        )
+        self.assertEqual(
+            [item["status"] for item in report["cashback"]],
+            ["comparable", "comparable"],
+        )
+        self.assertTrue(all(item["cls"] == "rank-mid" for item in report["lounge"]))
+        self.assertEqual(
+            [item["label"] for item in report["lounge"]],
+            ["равно", "равно"],
+        )
+        self.assertEqual(
+            [item["label"] for item in report["cashback"]],
+            ["слабее", "сильнее"],
+        )
+        self.assertIn(
+            "20 тыс ₽ против 30 тыс ₽",
+            report["cashback"][0]["reason"],
+        )
+
+    def test_taxi_restaurants_and_insurance_are_not_false_equals(self):
+        if not shutil.which("node"):
+            self.skipTest("Node.js is unavailable")
+        evaluations = {
+            "sber_taxi": _compensation_evaluation(
+                "1 посещение в месяц по 1000 ₽ — опция на выбор", "taxi"
+            ),
+            "vtb_taxi": _compensation_evaluation(
+                "До 2 компенсаций поездок на такси в месяц; до 1000 ₽ за чек",
+                "taxi",
+            ),
+            "sber_restaurants": _compensation_evaluation(
+                "1 посещение в месяц на 2000 ₽ — опция на выбор", "restaurants"
+            ),
+            "vtb_restaurants": _compensation_evaluation(
+                "До 2 компенсаций чеков в месяц; до 2500 ₽ за один чек",
+                "restaurants",
+            ),
+            "sber_insurance": _insurance_evaluation(
+                "30 000 евро в РФ и 100 000 евро за рубежом; до 90 дней"
+            ),
+            "vtb_insurance": _insurance_evaluation(
+                "Страховое покрытие: $100 тыс для владельца / "
+                "$100 тыс для члена семьи, 90 дней"
+            ),
+        }
+        algorithm = _JS.split("SIDES.forEach", 1)[0]
+        algorithm = algorithm.replace(
+            "const DATA = JSON.parse(document.getElementById('data').textContent);",
+            "const DATA = [];",
+        ).replace(
+            "document.documentElement.classList.add('js-ready');", "",
+        )
+        scenario = f"""
+function pair(left, right, id) {{
+  return rankEvaluations([
+    {{side:'a',attr:{{id,value:'Сбер'}},evaluation:left}},
+    {{side:'b',attr:{{id,value:'ВТБ'}},evaluation:right}}
+  ]);
+}}
+const evaluations = {json.dumps(evaluations, ensure_ascii=False)};
+const report = {{
+  taxi: pair(evaluations.sber_taxi, evaluations.vtb_taxi, 'taxi'),
+  restaurants: pair(evaluations.sber_restaurants,
+    evaluations.vtb_restaurants, 'restaurants'),
+  insurance: pair(evaluations.sber_insurance,
+    evaluations.vtb_insurance, 'insurance'),
+  incomparable: pair(
+    {{status:'incomparable',method:'none',metrics:{{}},directions:{{}},
+      scope:{{}},summary:'разные условия',reason:'Нет общей метрики'}},
+    {{status:'incomparable',method:'none',metrics:{{}},directions:{{}},
+      scope:{{}},summary:'другие условия',reason:'Нет общей метрики'}},
+    'other_benefits')
+}};
+console.log(JSON.stringify(report));
+"""
+        result = subprocess.run(
+            ["node"], input=algorithm + scenario, text=True,
+            capture_output=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in report["taxi"]],
+            [("rank-low", "слабее"), ("rank-best", "сильнее")],
+        )
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in report["restaurants"]],
+            [("rank-low", "слабее"), ("rank-best", "сильнее")],
+        )
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in report["insurance"]],
+            [("rank-best", "сильнее"), ("rank-low", "слабее")],
+        )
+        self.assertTrue(all(
+            not item["cls"] and not item["label"]
+            for item in report["incomparable"]
+        ))
+
+    def test_missing_equal_and_composite_values_use_red_green_yellow(self):
+        if not shutil.which("node"):
+            self.skipTest("Node.js is unavailable")
+        algorithm = _JS.split("SIDES.forEach", 1)[0]
+        algorithm = algorithm.replace(
+            "const DATA = JSON.parse(document.getElementById('data').textContent);",
+            "const DATA = [];",
+        ).replace(
+            "document.documentElement.classList.add('js-ready');", "",
+        )
+        equal_limit = {
+            "status": "comparable", "method": "limit",
+            "metrics": {"unlimited": False, "limits": [
+                {"amount": 1_000_000, "period": "month"}
+            ]},
+            "directions": {}, "scope": {"operation_scope": "general_cash"},
+            "summary": "1 000 000 ₽ в месяц", "reason": "",
+        }
+        composite_left = {
+            "status": "comparable", "method": "composite",
+            "metrics": {"components": {
+                "internal": {"label": "Внутри банка", "present": True,
+                             "evaluation": equal_limit},
+                "sbp": {"label": "СБП", "present": True,
+                        "evaluation": equal_limit},
+            }},
+            "directions": {}, "scope": {"group": "transfers"},
+            "summary": "", "reason": "",
+        }
+        composite_right = json.loads(json.dumps(composite_left))
+        composite_right["metrics"]["components"]["sbp"]["present"] = False
+        composite_right["metrics"]["components"]["sbp"]["evaluation"] = {
+            "status": "missing", "method": "none", "metrics": {},
+            "directions": {}, "scope": {}, "summary": "Нет данных", "reason": "",
+        }
+        scenario = f"""
+const missing = rankEvaluations([
+  {{side:'a', attr:{{id:'x',value:'Есть'}}, evaluation:{{status:'comparable',
+    method:'ordinal',metrics:{{service_rank:1}},directions:{{service_rank:'higher'}},
+    scope:{{}},summary:'Есть',reason:''}}}},
+  {{side:'b', attr:{{id:'x',value:'Не найдено в доступных источниках'}},
+    evaluation:{{status:'missing',method:'none',metrics:{{}},directions:{{}},
+    scope:{{}},summary:'Нет данных',reason:''}}}}
+]);
+const bothMissing = rankEvaluations([
+  {{side:'a',attr:{{id:'x',value:'Не найдено в доступных источниках'}},
+    evaluation:{{status:'missing',method:'none',metrics:{{}},directions:{{}},
+    scope:{{}},summary:'Нет данных',reason:''}}}},
+  {{side:'b',attr:{{id:'x',value:'Нет данных'}},
+    evaluation:{{status:'missing',method:'none',metrics:{{}},directions:{{}},
+    scope:{{}},summary:'Нет данных',reason:''}}}}
+]);
+const equal = rankEvaluations([
+  {{side:'a',attr:{{id:'cash',value:'1 млн ₽/мес'}},
+    evaluation:{json.dumps(equal_limit, ensure_ascii=False)}}},
+  {{side:'b',attr:{{id:'cash',value:'1 млн ₽/мес'}},
+    evaluation:{json.dumps(equal_limit, ensure_ascii=False)}}}
+]);
+const composite = rankEvaluations([
+  {{side:'a',attr:{{id:'transfers_summary',value:'данные'}},
+    evaluation:{json.dumps(composite_left, ensure_ascii=False)}}},
+  {{side:'b',attr:{{id:'transfers_summary',value:'данные'}},
+    evaluation:{json.dumps(composite_right, ensure_ascii=False)}}}
+]);
+console.log(JSON.stringify({{missing,bothMissing,equal,composite}}));
+"""
+        result = subprocess.run(
+            ["node"], input=algorithm + scenario, text=True,
+            capture_output=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in report["missing"]],
+            [("rank-best", "сильнее"), ("rank-low", "слабее")],
+        )
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in report["bothMissing"]],
+            [("rank-mid", "равно"), ("rank-mid", "равно")],
+        )
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in report["equal"]],
+            [("rank-mid", "равно"), ("rank-mid", "равно")],
+        )
+        self.assertEqual(
+            [(item["cls"], item["label"]) for item in report["composite"]],
+            [("rank-best", "сильнее"), ("rank-low", "слабее")],
+        )
 
     def test_rank_bruteforce_all_actual_pairs_is_symmetric_and_deterministic(self):
         if not shutil.which("node"):
@@ -348,17 +691,7 @@ for (const item of auditLevels) {{
       const improvedEntry = {{
         ...baselineEntry, side: 'b', evaluation: improvedEvaluation
       }};
-      const vectorOrder = compareRankVectors(
-        fallbackRankVector(improvedEntry),
-        fallbackRankVector(baselineEntry)
-      );
       monotonicChecked += 1;
-      if (vectorOrder < 0) {{
-        violations.push({{
-          kind: 'reversed_metric', field: attr.id, metric: key,
-          bank: item.bank, tier: item.level.tier_id
-        }});
-      }}
       const structured = compareEvaluations(improvedEvaluation, evaluation);
       if (structured.order !== null && structured.order < 0) {{
         violations.push({{
@@ -395,7 +728,12 @@ console.log(JSON.stringify({{
         )
         self.assertGreater(report["checked"], 9_000)
         self.assertGreater(report["monotonicChecked"], 100)
-        self.assertEqual(report["fields"], 13)
+        self.assertEqual(report["fields"], len({
+            field
+            for bank in payload
+            for level in bank["levels"]
+            for field in (attr["id"] for attr in level["attrs"])
+        }))
         self.assertEqual(report["violationCount"], 0, report["violations"])
 
     def test_level_map_is_unique_expandable_and_responsive_if_browser_available(self):

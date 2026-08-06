@@ -2,12 +2,19 @@
 """JSON export used as the single source for the Sber VS HTML landing."""
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
-from scanner.benefits import other_benefits_text
+from scanner.benefits import (
+    health_option_field,
+    other_benefits_text,
+    pets_option_field,
+    sport_beauty_field,
+)
 from scanner.formatting import normalize_source_text
 from scanner.merge import field_value
+from scanner.news_text import strip_effective_date_emphasis
 from scanner.sources import (
     BANK_FIELDS,
     BANKS,
@@ -30,8 +37,9 @@ DISPLAY_BANK_FIELD_IDS = [
         "always_included_options",
         "selectable_options",
         "selection_rules",
-        "auto",
         "ecosystem",
+        "roadside_option",
+        "last_change_date",
     }
 ]
 
@@ -104,11 +112,30 @@ def _entry_record(bank: dict, tier: dict, entry: dict, scan_date: str) -> dict:
 
 
 def _display_field(fields: dict, fid: str):
+    if fid == "health_option":
+        return health_option_field(fields)
+    if fid == "pets_option":
+        return pets_option_field(fields)
+    if fid == "sport_beauty_option":
+        return sport_beauty_field(fields)
+    if fid == "auto":
+        # `roadside_option` is the newer scope-safe name used by curated
+        # sources.  Older parsers and several banks publish the same category
+        # as `auto`.  Expose one canonical comparison row while retaining the
+        # selected source record and all of its provenance.
+        roadside = fields.get("roadside_option")
+        if field_value(roadside) != NOT_FOUND:
+            return roadside
+        return fields.get(fid)
     if fid == "other_benefits":
         field = fields.get(fid)
-        if isinstance(field, dict):
+        if isinstance(field, dict) and field.get("source_id") != "derived":
             return field
         derived = other_benefits_text(fields)
+        if isinstance(field, dict):
+            refreshed = dict(field)
+            refreshed.update({"value": derived, "raw_text": derived})
+            return refreshed
         return {
             "value": derived,
             "source_id": "derived",
@@ -169,7 +196,7 @@ def _field_record(field_id: str, field, bank_id: str, bank_name: str,
         "source_priority": source_priority_rank(source_id),
         "source_url": source_url,
         "retrieved_at": date_checked or (scan_date or "")[:10],
-        "document_date": "",
+        "document_date": field.get("effective_date", "") if isinstance(field, dict) else "",
         "date_checked": date_checked,
         "quality": quality,
         "status": _publication_status(value, publication_status, conflict_status, divergent),
@@ -181,6 +208,17 @@ def _field_record(field_id: str, field, bank_id: str, bank_name: str,
         "blocked_value": blocked_value,
         "note": normalize_source_text(note),
         "is_reference": field_id in REFERENCE_FIELDS,
+        "document_title": field.get("document_title", "") if isinstance(field, dict) else "",
+        "quoted_fragment": field.get("quoted_fragment", "") if isinstance(field, dict) else "",
+        "effective_date": field.get("effective_date", "") if isinstance(field, dict) else "",
+        "pdf_page": field.get("pdf_page", "") if isinstance(field, dict) else "",
+        "recipient": field.get("recipient", "") if isinstance(field, dict) else "",
+        "channel": field.get("channel", "") if isinstance(field, dict) else "",
+        "free_limit": field.get("free_limit", "") if isinstance(field, dict) else "",
+        "technical_limit": field.get("technical_limit", "") if isinstance(field, dict) else "",
+        "period": field.get("period", "") if isinstance(field, dict) else "",
+        "over_limit_fee": field.get("over_limit_fee", "") if isinstance(field, dict) else "",
+        "region": field.get("region", "") if isinstance(field, dict) else "",
     }
 
 
@@ -231,7 +269,22 @@ def _display_value(value, field_id: str = "") -> str:
     normalized = _raw_value(value, field_id)
     if normalized.strip().lower() == NOT_FOUND:
         return NOT_FOUND_AVAILABLE
-    return normalized
+    # Effective dates belong to the news feed and provenance metadata. The
+    # comparison table shows the current condition itself without historical
+    # framing such as «с 31 июля 2026 года».
+    display = strip_effective_date_emphasis(normalized)
+    # The selected tier is already shown in the comparison column heading.
+    # Do not repeat it inside a field value such as entry conditions.
+    display = re.sub(
+        r"^Уровень\s+[«\"]?[^»\":.]+[»\"]?\s*[:.]\s*",
+        "",
+        display,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    if display:
+        display = display[0].upper() + display[1:]
+    return display
 
 
 def _source_type(source_id: str) -> str:

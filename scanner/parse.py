@@ -230,6 +230,15 @@ class PremiumBankingInfoParser:
         ("cashback", r"обмен \d+ бонус\w*[^;|]{0,60}"),
         # опция «Авто» с составом
         ("auto", r"опция «Авто»[^)]{0,180}\)"),
+        # Некоторые уровни публикуют автомобильную помощь только внутри
+        # сводного блока «Другие привилегии». Переносим подтверждённый
+        # фрагмент в профильное поле, сохраняя источник конкретного тира.
+        ("auto", r"(?:Помощь на дорогах|Автоконсьерж|автоуслуги|breakdown cover)[^;|\n]{0,240}"),
+        ("sport_beauty_option", r"опция «Спорт и красота»[^)]{0,260}\)"),
+        ("sport_beauty_option", r"пакет «Спорт»[^;|\n]{0,500}"),
+        ("sport_beauty_option", r"[^;|\n]{0,120}(?:appoint|Фитмост)[^;|\n]{0,260}"),
+        ("health_option", r"[^;|\n]{0,100}(?:телемедицин|Доктис|сервис «Лучи»|чекап|медицинск(?:ая|ое) (?:программа|обследование))[^;|\n]{0,300}"),
+        ("pets_option", r"консультаци[ия]\s+ветеринар[а-я]*(?:\s+всегда\s+включен[ао]?)?"),
         ("taxi", r"опция «Такси»[^)]{0,180}\)"),
         ("restaurants", r"опция «Рестораны?»[^)]{0,180}\)"),
         ("selectable_options", r"опция «[^»]+»[^)]{0,180}\)"),
@@ -535,6 +544,8 @@ class PremiumBankingInfoParser:
                 self._assign_transport(result, item)
             if "авто" in low:
                 self._append(result, "auto", item)
+            if any(marker in low for marker in ("спорт и красота", "фитмост", "appoint")):
+                self._append(result, "sport_beauty_option", item)
 
     def _extract_embedded(self, result: dict, text: str):
         for field_id, pattern in self.EMBEDDED_RULES:
@@ -661,6 +672,8 @@ class PremiumBankingInfoParser:
                 self._append(result, "restaurants", option_text)
             elif "авто" in low_name:
                 self._append(result, "auto", option_text)
+            elif "спорт и красота" in low_name:
+                self._append(result, "sport_beauty_option", option_text)
 
     @staticmethod
     def _extract_selection_rule(text: str) -> str:

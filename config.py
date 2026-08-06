@@ -18,7 +18,10 @@ COMPARISON_JSON = "comparison_data.json"
 # GitHub Pages entrypoint in the publication repository.
 PUBLISHED_HTML = "index.html"
 PUBLISH_BRANCH = "main"
+PUBLISHED_URL = "https://sberprojectsmvs.github.io/bank_cite/"
 
-# Additional generated site assets can be added later as (source, destination)
-# path pairs relative to BASE_DIR and SITE_REPOSITORY.
-PUBLISH_EXTRA_ASSETS: tuple[tuple[Path, Path], ...] = ()
+# Publish the generated HTML as a plain static file.  This avoids an unnecessary
+# Jekyll build between a successful push and the GitHub Pages deployment.
+PUBLISH_EXTRA_ASSETS: tuple[tuple[Path, Path], ...] = (
+    (OUTPUT_DIR / ".nojekyll", Path(".nojekyll")),
+)

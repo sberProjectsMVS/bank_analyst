@@ -24,7 +24,12 @@ from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from scanner.benefits import other_benefits_text
+from scanner.benefits import (
+    health_option_field,
+    other_benefits_text,
+    pets_option_field,
+    sport_beauty_field,
+)
 from scanner.formatting import (
     assert_user_visible_text,
     make_complete_summary,
@@ -62,8 +67,8 @@ DISPLAY_BANK_FIELD_IDS = [
         "always_included_options",
         "selectable_options",
         "selection_rules",
-        "auto",
         "ecosystem",
+        "roadside_option",
     }
 ]
 
@@ -221,11 +226,28 @@ def _reliability_status(field) -> str:
 
 
 def _display_field(fields: dict, fid: str):
+    if fid == "health_option":
+        return health_option_field(fields)
+    if fid == "pets_option":
+        return pets_option_field(fields)
+    if fid == "sport_beauty_option":
+        return sport_beauty_field(fields)
+    if fid == "auto":
+        # Keep one user-facing row for both source names: curated facts use
+        # `roadside_option`, while older parsers use `auto`.
+        roadside = fields.get("roadside_option")
+        if field_value(roadside) != NOT_FOUND:
+            return roadside
+        return fields.get(fid)
     if fid == "other_benefits":
         field = fields.get(fid)
-        if isinstance(field, dict):
+        if isinstance(field, dict) and field.get("source_id") != "derived":
             return field
         derived = other_benefits_text(fields)
+        if isinstance(field, dict):
+            refreshed = dict(field)
+            refreshed.update({"value": derived, "raw_text": derived})
+            return refreshed
         return {"value": derived, "source_name": "Нормализация"}
     return fields.get(fid)
 

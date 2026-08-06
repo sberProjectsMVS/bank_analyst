@@ -19,7 +19,7 @@ from scanner.premium_news import (
     parse_telegram_listing,
     sync_premium_news_sources,
 )
-from scanner.news_text import clean_news_text
+from scanner.news_text import clean_news_text, strip_effective_date_emphasis
 
 
 OFFICIAL_SOURCE = {
@@ -45,6 +45,18 @@ class FakeResponse:
 
 
 class PremiumNewsTests(unittest.TestCase):
+    def test_effective_date_removal_does_not_leave_leading_dash(self):
+        raw = (
+            "С 31 июля 2026 года — 5 категорий кэшбэка вместо 3; "
+            "максимальный кэшбэк — до 30 000 ₽ в месяц"
+        )
+
+        self.assertEqual(
+            strip_effective_date_emphasis(raw),
+            "5 категорий кэшбэка вместо 3; максимальный кэшбэк — "
+            "до 30 000 ₽ в месяц",
+        )
+
     def test_news_text_removes_emoji_and_typed_smileys(self):
         raw = (
             "⭐️ Обновили условия 😊: кэшбэк 15% — до 5 000 ₽ :) "
@@ -247,7 +259,61 @@ class PremiumNewsTests(unittest.TestCase):
         self.assertIn("<b>2</b> публикаций", html)
         self.assertNotIn("Все новости ·", html)
         self.assertIn('data-bank="Инго Банк"', html)
-        self.assertIn("Все изменения и новости", html)
+        self.assertIn("Все новости", html)
+
+    def test_news_text_starts_with_substance_and_keeps_date_in_metadata_only(self):
+        records = [{
+            "bank": "ВТБ",
+            "dateSort": "2026-07-31",
+            "dateLabel": "июл 2026",
+            "text": (
+                "Изменения в программе лояльности ВТБ с 31 июля 2026 года "
+                "1. Появится выбор 5 категорий вместо 3"
+            ),
+            "order": 1,
+        }]
+
+        cleaned = premium_changes._clean_news_record(records[0])
+        html = premium_changes.render_changes_panel(
+            premium_changes.group_by_bank([cleaned]),
+            datetime(2026, 7, 31),
+        )
+
+        self.assertEqual(cleaned["text"], "1. Появится выбор 5 категорий вместо 3")
+        self.assertNotIn("с 31 июля", html)
+        self.assertIn("Новости · 1 публикаций", html)
+        self.assertIn("Скрыть новости", html)
+
+    def test_failed_pbi_refresh_keeps_last_complete_cached_feed(self):
+        cached = [{
+            "bank": "Сбер",
+            "dateSort": "2026-06-01",
+            "dateLabel": "июн 2026",
+            "text": "Сохранённое изменение условий",
+            "order": 1,
+        }]
+        with (
+            patch.object(
+                premium_changes,
+                "fetch_pbi_updates",
+                return_value=([], 7),
+            ),
+            patch.object(premium_changes, "_load_changes_cache", return_value=cached),
+            patch.object(
+                premium_changes,
+                "load_editorial_news",
+                return_value=([], {"failed": False}),
+            ),
+            patch.object(
+                premium_changes,
+                "load_monitored_premium_news",
+                return_value=[],
+            ),
+        ):
+            changes, failed = premium_changes.collect_premium_updates(use_cache=True)
+
+        self.assertEqual(failed, 7)
+        self.assertEqual(changes, cached)
 
     def test_landing_extracts_dated_premium_document_and_rejects_generic_file(self):
         source = {
@@ -600,6 +666,83 @@ class PremiumNewsTests(unittest.TestCase):
             self.assertFalse(cache_path.with_suffix(".json.tmp").exists())
             payload = json.loads(cache_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["schema_version"], 1)
+
+    def test_successful_refresh_never_removes_older_source_records(self):
+        source = {**OFFICIAL_SOURCE, "url": "https://example.test/news/"}
+        current_page = ["""
+        <li><a href="/news/old/">Обновлены преимущества ВТБ Привилегии</a>
+        <span>27 июля 2026</span></li>
+        """]
+
+        def requester(url, **_kwargs):
+            if url.endswith("/robots.txt"):
+                return FakeResponse("User-agent: *\nAllow: /\n")
+            return FakeResponse(current_page[0])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_path = Path(tmp) / "news.json"
+            sync_premium_news_sources(
+                cache_path=cache_path,
+                requester=requester,
+                source_registry=[source],
+            )
+            current_page[0] = """
+            <li><a href="/news/new/">Новые преимущества ВТБ Привилегии</a>
+            <span>28 июля 2026</span></li>
+            """
+            result = sync_premium_news_sources(
+                cache_path=cache_path,
+                requester=requester,
+                source_registry=[source],
+            )
+
+        self.assertEqual(len(result["records"]), 2)
+        self.assertEqual(
+            {record["dateSort"] for record in result["records"]},
+            {"2026-07-27", "2026-07-28"},
+        )
+
+    def test_successful_landing_build_persists_complete_feed_cache(self):
+        cached = [{
+            "bank": "Сбер",
+            "dateSort": "2026-07-27",
+            "dateLabel": "июл 2026",
+            "text": "Старая сохранённая новость",
+            "order": 1,
+        }]
+        fresh = [{
+            "bank": "ВТБ",
+            "dateSort": "2026-07-28",
+            "dateLabel": "июл 2026",
+            "text": "Новая новость",
+            "order": 1,
+        }]
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "landing.html"
+            cache_path = Path(tmp) / "feed.json"
+            with (
+                patch.object(
+                    premium_changes, "fetch_pbi_updates", return_value=(fresh, 0),
+                ),
+                patch.object(
+                    premium_changes, "_load_changes_cache", return_value=cached,
+                ),
+                patch.object(
+                    premium_changes,
+                    "load_editorial_news",
+                    return_value=([], {"failed": False}),
+                ),
+                patch.object(
+                    premium_changes, "load_monitored_premium_news", return_value=[],
+                ),
+                patch.object(premium_changes, "CHANGES_CACHE_PATH", cache_path),
+            ):
+                premium_changes.build_premium_changes_landing(Path(), output_path)
+
+            payload = json.loads(cache_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(len(payload["records"]), 2)
+        self.assertFalse(cache_path.with_suffix(".json.tmp").exists())
 
     def test_disallowed_source_is_reported_without_fetching_listing(self):
         requested = []

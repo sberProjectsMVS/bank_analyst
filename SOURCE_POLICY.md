@@ -52,7 +52,9 @@ Registered priority official URLs:
 
 - Sber Premier landing: `https://www.sberbank.com/ru/person/sb_premier_new`
 - Sber First landing: `https://www.sberbank.com/ru/person/new_sb1`
-- Sber premium service: `https://www.sberbank.ru/common/img/uploaded/files/pdf/tarif_premobsl_06032026.pdf`
+- Sber premium service: `https://www.sberbank.ru/common/img/uploaded/files/pdf/tarif_premobsl_07072026.pdf`
+- Sber Premier travel insurance: `https://www.sberbank.ru/common/img/uploaded/pdf/usloviya_vzr_newpremier_2025.pdf`
+- Sber First level 4 travel insurance: `https://www.sberbank.ru/common/img/uploaded/files/sb1/usloviya_vzr_premobsl_4.pdf`
 - Sber Private Banking: `https://www.sberbank.ru/common/img/uploaded/redirected/private/assets/tariff_sb_pb.pdf`
 - Sber Private Banking landing: `https://sberpb.ru/`
 - T-Bank Premium: `https://cdn.tbank.ru/static/documents/docs-terms-of-service-premium.pdf`
@@ -75,6 +77,7 @@ Registered priority official URLs:
 - Gazprombank Private landing: `https://www.gazprombank.ru/private/`
 - Alfa Only: `https://alfabank.servicecdn.ru/site-upload/c1/65/275/Tariffs_Alfa_Only_Card.pdf`
 - Alfa Only landing: `https://alfabank.ru/everyday/package/premium/`
+- Alfa-Bank retail tariffs, including A-Club: `https://alfabank.servicecdn.ru/site-upload/58/51/1869/all_tariffs_1082026.pdf`
 - A-Club landing: `https://alfabank.ru/a-club/`
 
 Other already connected official bank pages and PDFs may be used when they match the concrete product and tier.
