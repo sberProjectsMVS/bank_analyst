@@ -31,68 +31,271 @@ MAX_STRUCTURED_VALUE_LEN = 900
 
 
 def normalize_text(text: str) -> str:
-    """Чистим неразрывные пробелы и битые entity вида '&nbsp' без ';'."""
-    return re.sub(r"\s+", " ", text.replace("\xa0", " ")
-                  .replace("&nbsp;", " ").replace("&nbsp", " ")).strip()
+    """Чистим пробелы, неразрывные пробелы и битые HTML-entity."""
+    if not text:
+        return ""
+
+    return re.sub(
+        r"\s+",
+        " ",
+        text.replace("\xa0", " ")
+        .replace("&nbsp;", " ")
+        .replace("&nbsp", " "),
+    ).strip()
 
 
 def html_to_text(html: str) -> str:
+    """Извлекает полезный видимый текст из обычных и JS-страниц."""
+    if not html:
+        return ""
+
     soup = BeautifulSoup(html, "html.parser")
-    for tag in soup(["script", "style", "noscript", "svg", "iframe"]):
+
+    # Эти элементы не содержат полезного видимого текста.
+    for tag in soup([
+        "script",
+        "style",
+        "noscript",
+        "svg",
+        "iframe",
+        "template",
+    ]):
         tag.decompose()
-    text = soup.get_text(separator="\n", strip=True)
-    lines = [normalize_text(ln) for ln in text.splitlines() if ln.strip()]
-    return "\n".join(lines)
+
+    parts = []
+
+    # Title страницы.
+    if soup.title:
+        title = normalize_text(soup.title.get_text(" ", strip=True))
+        if title:
+            parts.append(title)
+
+    # Метаописания часто содержат краткое описание продукта.
+    useful_meta = {
+        "description",
+        "og:title",
+        "og:description",
+        "twitter:title",
+        "twitter:description",
+    }
+
+    for meta in soup.find_all("meta"):
+        meta_name = (
+            meta.get("name")
+            or meta.get("property")
+            or ""
+        ).lower()
+
+        if meta_name not in useful_meta:
+            continue
+
+        content = normalize_text(meta.get("content", ""))
+        if content:
+            parts.append(content)
+
+    # На SPA-сайтах часть подписей находится только в атрибутах.
+    for element in soup.find_all(attrs={"aria-label": True}):
+        value = normalize_text(element.get("aria-label", ""))
+        if value:
+            parts.append(value)
+
+    for element in soup.find_all(attrs={"title": True}):
+        value = normalize_text(element.get("title", ""))
+        if value:
+            parts.append(value)
+
+    for image in soup.find_all("img"):
+        alt = normalize_text(image.get("alt", ""))
+        if alt:
+            parts.append(alt)
+
+    # Основной видимый текст.
+    visible_text = soup.get_text(separator="\n", strip=True)
+
+    for line in visible_text.splitlines():
+        normalized = normalize_text(line)
+        if normalized:
+            parts.append(normalized)
+
+    # Убираем полные повторы с сохранением порядка.
+    result = []
+    seen = set()
+
+    for part in parts:
+        key = part.casefold()
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        result.append(part)
+
+    return "\n".join(result)
 
 
 def _split_sentences(text: str) -> list:
-    # Грубое разбиение: по предложениям и по строкам вёрстки
-    chunks = re.split(r"(?<=[.!?])\s+|\n", text)
-    return [c.strip() for c in chunks if len(c.strip()) >= 15]
+    """Разбивает текст и объединяет короткие соседние DOM-строки."""
+    if not text:
+        return []
+
+    raw_chunks = [
+        normalize_text(chunk)
+        for chunk in re.split(r"(?<=[.!?])\s+|\n+", text)
+        if normalize_text(chunk)
+    ]
+
+    chunks = []
+    buffer = []
+
+    for chunk in raw_chunks:
+        # На сайтах часто встречается разметка:
+        #
+        # Кэшбэк
+        # до 15%
+        # в категориях
+        #
+        # Такие короткие DOM-строки нельзя отбрасывать.
+        if len(chunk) < 15:
+            buffer.append(chunk)
+
+            # Не даём буферу бесконтрольно расти.
+            if len(" ".join(buffer)) >= 120:
+                chunks.append(normalize_text(" ".join(buffer)))
+                buffer = []
+
+            continue
+
+        if buffer:
+            chunk = normalize_text(" ".join(buffer + [chunk]))
+            buffer = []
+
+        chunks.append(chunk)
+
+    if buffer:
+        chunks.append(normalize_text(" ".join(buffer)))
+
+    return [chunk for chunk in chunks if chunk]
 
 
 def extract_snippets(text: str, keywords: list) -> str:
-    """Возвращает до MAX_SNIPPETS фрагментов текста, содержащих ключевые слова."""
-    sentences = _split_sentences(text)
+    """Возвращает фрагменты с ключевыми словами и соседним контекстом."""
+    if not text or not keywords:
+        return NOT_FOUND
+
+    normalized_keywords = []
+
+    for keyword in keywords:
+        normalized = normalize_text(str(keyword)).casefold()
+
+        if normalized and normalized not in normalized_keywords:
+            normalized_keywords.append(normalized)
+
+    if not normalized_keywords:
+        return NOT_FOUND
+
     found = []
     seen = set()
-    lowered_keywords = [k.lower() for k in keywords]
-    for sentence in sentences:
-        low = sentence.lower()
-        if any(k in low for k in lowered_keywords):
-            snippet = sentence[:MAX_SNIPPET_LEN]
-            key = snippet.lower()
-            if key not in seen:
-                seen.add(key)
-                found.append(snippet)
+
+    def add_snippet(value: str):
+        snippet = normalize_text(value)
+
+        if len(snippet) < 5:
+            return
+
+        snippet = snippet[:MAX_SNIPPET_LEN]
+        key = snippet.casefold()
+
+        if key in seen:
+            return
+
+        seen.add(key)
+        found.append(snippet)
+
+    chunks = _split_sentences(text)
+
+    # Первый проход: ищем совпадения по строкам/предложениям.
+    for index, chunk in enumerate(chunks):
+        lowered = chunk.casefold()
+
+        if not any(keyword in lowered for keyword in normalized_keywords):
+            continue
+
+        # Добавляем строку до и строку после найденного блока.
+        start = max(0, index - 1)
+        end = min(len(chunks), index + 2)
+
+        add_snippet(" ".join(chunks[start:end]))
+
         if len(found) >= MAX_SNIPPETS:
-            break
+            return " | ".join(found)
+
+    # Второй проход: ищем в сыром тексте.
+    # Он нужен, если HTML разбил одну фразу на много DOM-элементов.
+    lowered_text = text.casefold()
+
+    for keyword in normalized_keywords:
+        search_from = 0
+
+        while True:
+            position = lowered_text.find(keyword, search_from)
+
+            if position == -1:
+                break
+
+            left = max(0, position - 120)
+            right = min(
+                len(text),
+                position + len(keyword) + 180,
+            )
+
+            add_snippet(text[left:right])
+
+            if len(found) >= MAX_SNIPPETS:
+                return " | ".join(found)
+
+            search_from = position + max(len(keyword), 1)
+
     return " | ".join(found) if found else NOT_FOUND
 
 
 class GenericParser:
-    """Извлечение по ключевым словам. Подходит как fallback для любого источника."""
+    """Fallback-парсер для обычных и отрендеренных через Playwright страниц."""
 
     def parse(self, html: str, tier: dict, bank: dict) -> dict:
         text = html_to_text(html)
-        fields = LIFESTYLE_FIELDS if bank["type"] == "lifestyle" else BANK_FIELDS
+
+        fields = (
+            LIFESTYLE_FIELDS
+            if bank["type"] == "lifestyle"
+            else BANK_FIELDS
+        )
+
         result = {}
+
         for field_id, spec in fields.items():
-            result[field_id] = extract_snippets(text, spec["keywords"])
+            keywords = spec.get("keywords", [])
+
+            result[field_id] = extract_snippets(
+                text=text,
+                keywords=keywords,
+            )
 
         if bank["type"] == "lifestyle":
             result["bank_overlap"] = self._detect_overlaps(result)
+
         return result
 
     @staticmethod
     def _detect_overlaps(result: dict) -> str:
-        """Пересечения с банковскими привилегиями: перечисляем джобы,
-        по которым подписка реально что-то предлагает (поле не пустое)."""
+        """Определяет пересечения подписки с банковскими привилегиями."""
         overlaps = [
             job_desc
-            for field_id, job_desc in LIFESTYLE_BANK_OVERLAP_JOBS.items()
-            if result.get(field_id) and result[field_id] != NOT_FOUND
+            for field_id, job_desc
+            in LIFESTYLE_BANK_OVERLAP_JOBS.items()
+            if result.get(field_id)
+            and result[field_id] != NOT_FOUND
         ]
+
         return "; ".join(overlaps) if overlaps else NOT_FOUND
 
 

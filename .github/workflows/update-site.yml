@@ -1,0 +1,105 @@
+name: Scan and update site
+
+on:
+  push:
+    branches:
+      - main
+
+  schedule:
+    # Каждый день в 00:00 по московскому времени
+    - cron: "0 21 * * *"
+
+  # Ручной запуск из вкладки Actions
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bank-site-update
+  cancel-in-progress: false
+
+jobs:
+  scan-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout bank_analyst
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Create virtual environment
+        run: python -m venv .venv
+
+      - name: Install dependencies
+        run: |
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Install Playwright Chromium
+        run: |
+          .venv/bin/python -m playwright install --with-deps chromium
+
+      - name: Run full scan
+        run: |
+          set +e
+
+          .venv/bin/python main.py --scan-all
+          exit_code=$?
+
+          echo "Scanner exit code: $exit_code"
+
+          if [ "$exit_code" -ne 0 ] && [ "$exit_code" -ne 2 ]; then
+            exit "$exit_code"
+          fi
+
+          exit 0
+
+      - name: Check generated landing
+        run: |
+          test -f output/sber_vs_banks.html
+          test -s output/sber_vs_banks.html
+          test -f output/premium_changes.html
+          test -s output/premium_changes.html
+
+      - name: Upload generated HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-site
+          path: |
+            output/sber_vs_banks.html
+            output/premium_changes.html
+          retention-days: 30
+
+      - name: Clone bank_cite
+        env:
+          SITE_TOKEN: ${{ secrets.SITE_TOKEN }}
+        run: |
+          git clone \
+            https://x-access-token:${SITE_TOKEN}@github.com/sberprojectsmvs/bank_cite.git \
+            bank_cite
+
+      - name: Update index.html
+        run: |
+          cp output/sber_vs_banks.html bank_cite/index.html
+
+      - name: Commit and push
+        working-directory: bank_cite
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html
+
+          if git diff --cached --quiet; then
+            echo "Лендинг не изменился — commit не требуется"
+            exit 0
+          fi
+
+          git commit -m "Automatic site update"
+          git push origin main

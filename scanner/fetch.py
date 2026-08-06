@@ -19,6 +19,10 @@ import requests
 
 from scanner.sources import REQUEST_PAUSE, REQUEST_TIMEOUT
 
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 log = logging.getLogger("scanner.fetch")
 
 USER_AGENT = (
@@ -66,7 +70,7 @@ class Fetcher:
             rp = urllib.robotparser.RobotFileParser()
             try:
                 resp = self._session.get(
-                    origin + "/robots.txt", timeout=REQUEST_TIMEOUT
+                    origin + "/robots.txt", timeout=REQUEST_TIMEOUT, verify=False,
                 )
                 if resp.status_code == 200:
                     rp.parse(resp.text.splitlines())
@@ -124,7 +128,7 @@ class Fetcher:
             self._throttle()
             try:
                 resp = self._session.get(
-                    url, timeout=REQUEST_TIMEOUT, allow_redirects=True
+                    url, timeout=REQUEST_TIMEOUT, allow_redirects=True, verify=False,
                 )
             except requests.RequestException as exc:
                 last_error = f"{type(exc).__name__}: {exc}"
@@ -188,20 +192,42 @@ class Fetcher:
         try:
             from playwright.sync_api import sync_playwright
         except ImportError:
-            log.info("  [js] playwright не установлен — JS-fallback пропущен "
-                     "(pip install playwright && playwright install chromium)")
+            log.info(
+                "  [js] playwright не установлен — JS-fallback пропущен "
+                "(pip install playwright && playwright install chromium)"
+            )
             return None
+    
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
-                page = browser.new_page(user_agent=USER_AGENT)
-                page.goto(url, timeout=REQUEST_TIMEOUT * 1000,
-                          wait_until="networkidle")
+    
+                context = browser.new_context(
+                    user_agent=USER_AGENT,
+                    ignore_https_errors=True,
+                    locale="ru-RU",
+                )
+    
+                page = context.new_page()
+    
+                page.goto(
+                    url,
+                    timeout=REQUEST_TIMEOUT * 1000,
+                    wait_until="domcontentloaded",
+                )
+                
+                page.wait_for_timeout(3000)
+                
                 html = page.content()
+    
+                context.close()
                 browser.close()
+    
                 log.info("  [js] %s получен через playwright", url)
                 return html
-        except Exception as exc:  # noqa: BLE001 — любой сбой браузера не должен ронять скан
+    
+        except Exception as exc:
+            # Любой сбой браузера не должен ронять весь скан
             log.warning("  [js] playwright не справился с %s: %s", url, exc)
             return None
 
