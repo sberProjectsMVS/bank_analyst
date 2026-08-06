@@ -24,6 +24,8 @@ The repository will end with `main` as its only active working branch, while eve
   Evidence: both files have SHA-256 `6c688168d5156f05f845891bc9041e981f109324d3d180c65369e5d9959f9ae0`.
 - Observation: `tmp/vtb_prime` and `tmpt43w8f1a` total approximately 78 MiB and no runtime source references either path.
   Evidence: `du -sh` reports 74 MiB and 3.9 MiB respectively; focused `rg` over runtime directories returns no references.
+- Observation: The full test discovery is not hermetic and stalled in a live Google Sheets TLS handshake after exposing one previously known assertion failure.
+  Evidence: interruption stack ended in `scanner/editorial_news.py` via `requests.get(..., timeout=30)` from `test_balanced_parentheses_all_banks`; the isolated 56-test retention, publisher, and alignment suite passes.
 
 ## Decision Log
 
