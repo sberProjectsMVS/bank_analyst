@@ -1,17 +1,17 @@
 {
-  "run_id": "run_20260730_190049",
-  "started_at": "2026-07-30T19:00:49",
-  "finished_at": "2026-07-30T19:08:33",
+  "run_id": "run_20260806_142513",
+  "started_at": "2026-08-06T14:25:13",
+  "finished_at": "2026-08-06T14:44:49",
   "banks_checked": 12,
-  "sources_checked": 320,
+  "sources_checked": 286,
   "documents_checked": 0,
-  "new_changes_found": 11,
-  "confirmed_changes": 11,
+  "new_changes_found": 10,
+  "confirmed_changes": 10,
   "changes_requiring_review": 0,
   "duplicate_changes_skipped": 0,
-  "errors": 65,
-  "quality_errors": 24,
-  "quality_warnings": 87,
+  "errors": 79,
+  "quality_errors": 39,
+  "quality_warnings": 192,
   "quality_issues": [
     {
       "severity": "warning",
@@ -21,7 +21,7 @@
       "tier_id": "sber_premier_1",
       "field_id": "positioning",
       "message": "Конфликт источников без ручного подтверждения",
-      "value": "Сбер – Новый СберПремьер — Уровень за 2 млн ₽ или траты 150 тыс ₽ или 4000 акций (≈1,100,000₽) ; Сбер Новый СберПремьер | Системно значимый банк"
+      "value": "Сбер – Новый СберПремьер — Уровень за 2 млн ₽ или траты 150 тыс ₽ или 4000 акций (≈1,132,000₽) ; Сбер Новый СберПремьер | Системно значимый банк"
     },
     {
       "severity": "warning",
@@ -41,7 +41,7 @@
       "tier_id": "sber_premier_2",
       "field_id": "positioning",
       "message": "Конфликт источников без ручного подтверждения",
-      "value": "Сбер – Новый СберПремьер — Уровень за 3 млн ₽ или траты 200 тыс ₽ или 8000 акций (≈2,200,000₽) ; Сбер Новый СберПремьер | Системно значимый банк"
+      "value": "Сбер – Новый СберПремьер — Уровень за 3 млн ₽ или траты 200 тыс ₽ или 8000 акций (≈2,264,000₽) ; Сбер Новый СберПремьер | Системно значимый банк"
     },
     {
       "severity": "warning",
@@ -61,7 +61,7 @@
       "tier_id": "sber_premier_3",
       "field_id": "positioning",
       "message": "Конфликт источников без ручного подтверждения",
-      "value": "Сбер – Новый СберПремьер — Уровень за 6 млн ₽ или траты 350 тыс ₽ или 16000 акций (≈4,400,000₽) или 10 млн ₽ в совместном доступе ; Сбер Новый СберПремьер | Системно значимый банк"
+      "value": "Сбер – Новый СберПремьер — Уровень за 6 млн ₽ или траты 350 тыс ₽ или 16000 акций (≈4,528,000₽) или 10 млн ₽ в совместном доступе ; Сбер Новый СберПремьер | Системно значимый банк"
     },
     {
       "severity": "warning",
@@ -81,7 +81,47 @@
       "tier_id": "sber_first_4",
       "field_id": "positioning",
       "message": "Конфликт источников без ручного подтверждения",
-      "value": "Сбер – Новый СберПервый — Уровень за 15 млн ₽ или 40000 акций (≈11,000,000₽) или 20 млн ₽ в совместном доступе ; Сбер Новый СберПервый | Системно значимый банк"
+      "value": "Сбер – Новый СберПервый — Уровень за 15 млн ₽ или 40000 акций (≈11,320,000₽) или 20 млн ₽ в совместном доступе ; Сбер Новый СберПервый | Системно значимый банк"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 4",
+      "tier_id": "sber_first_4",
+      "field_id": "samokat_option",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "На бесплатной доставке продуктов из ЕАптеки, Самоката и СберМегаМаркета ~ 16 тыс."
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 4",
+      "tier_id": "sber_first_4",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: СберПрайм",
+      "value": "• Развлечения — до 5000 ₽ на Афиша.ру [опция на выбор]\n• Компенсация БЗ за границей по 3 тыс ₽ на 1 чел"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 4",
+      "tier_id": "sber_first_4",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: Okko",
+      "value": "• Развлечения — до 5000 ₽ на Афиша.ру [опция на выбор]\n• Компенсация БЗ за границей по 3 тыс ₽ на 1 чел"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 4",
+      "tier_id": "sber_first_4",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: Бизнес-зал Сбер",
+      "value": "• Развлечения — до 5000 ₽ на Афиша.ру [опция на выбор]\n• Компенсация БЗ за границей по 3 тыс ₽ на 1 чел"
     },
     {
       "severity": "warning",
@@ -91,7 +131,47 @@
       "tier_id": "sber_first_5",
       "field_id": "positioning",
       "message": "Конфликт источников без ручного подтверждения",
-      "value": "Сбер – Новый СберПервый — Уровень за 30 млн ₽ или 83000 акций (≈22,825,000₽) или 30 млн ₽ в совместном доступе ; Сбер Новый СберПервый | Системно значимый банк"
+      "value": "Сбер – Новый СберПервый — Уровень за 30 млн ₽ или 83000 акций (≈23,489,000₽) или 30 млн ₽ в совместном доступе ; Сбер Новый СберПервый | Системно значимый банк"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 5",
+      "tier_id": "sber_first_5",
+      "field_id": "insurance_trip_count",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Количество обращений к терапевту и педиатру не ограничено."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 5",
+      "tier_id": "sber_first_5",
+      "field_id": "insurance_additional_risks",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Включено: страховка при задержке или отказе в получении визы, при задержке/отмене рейса и утере багажа."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 5",
+      "tier_id": "sber_first_5",
+      "field_id": "samokat_option",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "На бесплатной доставке продуктов из ЕАптеки, Самоката и СберМегаМаркета ~ 16 тыс."
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Сбер",
+      "tier": "СберПервый — уровень 5",
+      "tier_id": "sber_first_5",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: Бизнес-зал Сбер",
+      "value": "• Развлечения — до 7000 ₽ на Афиша.ру [опция на выбор]\n• СберПрайм — Okko «Премиум» с Amediateka [включено постоянно]\n• Компенсация БЗ за границей по 3 тыс ₽ на 1 чел"
     },
     {
       "severity": "warning",
@@ -102,6 +182,56 @@
       "field_id": "positioning",
       "message": "Конфликт источников без ручного подтверждения",
       "value": "Сбер – Новый Sber Private — Уровень за 100 млн ₽ или 100 млн ₽ в совместном доступе ; Сбер Новый Sber Private | Системно значимый банк"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Сбер",
+      "tier": "Sber Private Banking — уровень 6",
+      "tier_id": "sber_private_6",
+      "field_id": "insurance_trip_count",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Количество обращений к терапевту и педиатру не ограничено."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Сбер",
+      "tier": "Sber Private Banking — уровень 6",
+      "tier_id": "sber_private_6",
+      "field_id": "insurance_additional_risks",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Включено: страховка при задержке или отказе в получении визы, при задержке/отмене рейса и утере багажа."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Сбер",
+      "tier": "Sber Private Banking — уровень 6",
+      "tier_id": "sber_private_6",
+      "field_id": "samokat_option",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "На бесплатной доставке продуктов из ЕАптеки, Самоката и СберМегаМаркета ~ 16 тыс."
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Сбер",
+      "tier": "Sber Private Banking — уровень 6",
+      "tier_id": "sber_private_6",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: СберПраво",
+      "value": "• Развлечения — до 8000 ₽ на Афиша.ру [опция на выбор]\n• СберПрайм — Okko «Премиум» с Amediateka [включено постоянно]\n• Компенсация ВИП-залов до 5 тыс ₽ в одном городе\n• Компенсация БЗ до 5 тыс ₽, если нет в списке\n• Сбер Мобайл — звонки + 5 ГБ в месяц"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Сбер",
+      "tier": "Sber Private Banking — уровень 6",
+      "tier_id": "sber_private_6",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: Pb Service",
+      "value": "• Развлечения — до 8000 ₽ на Афиша.ру [опция на выбор]\n• СберПрайм — Okko «Премиум» с Amediateka [включено постоянно]\n• Компенсация ВИП-залов до 5 тыс ₽ в одном городе\n• Компенсация БЗ до 5 тыс ₽, если нет в списке\n• Сбер Мобайл — звонки + 5 ГБ в месяц"
     },
     {
       "severity": "error",
@@ -144,6 +274,26 @@
       "value": "• Консультации с юристом и бухгалтером\n• Альфа-Мобайл — 10 ГБ, 300 минут и 30 SMS\n• Саммари от Smart Reading\n• РБК — Подписка\n• Alfa Only Лаундж — в SVO, терминал C\n• Закрытый винный клуб SimplePrivé — статус Silver, персональный менеджер и специальные условия в SimpleWine"
     },
     {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Альфа-Банк",
+      "tier": "A-Club (private)",
+      "tier_id": "alfa_aclub",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: PRIME",
+      "value": "• Консультации с юристом и бухгалтером\n• Альфа-Мобайл — 50 ГБ, 500 минут, 50 SMS\n• Alfa Only Лаундж — в SVO терминал C\n• А-Клуб Лаундж — в SVO терминал B\n• Закрытый винный клуб SimplePrivé — статус Gold, персональный сомелье и скидка 30% на основной ассортимент"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "Альфа-Банк",
+      "tier": "A-Club (private)",
+      "tier_id": "alfa_aclub",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: Медицинский консьерж",
+      "value": "• Консультации с юристом и бухгалтером\n• Альфа-Мобайл — 50 ГБ, 500 минут, 50 SMS\n• Alfa Only Лаундж — в SVO терминал C\n• А-Клуб Лаундж — в SVO терминал B\n• Закрытый винный клуб SimplePrivé — статус Gold, персональный сомелье и скидка 30% на основной ассортимент"
+    },
+    {
       "severity": "warning",
       "code": "publication_blocked",
       "bank": "ВТБ",
@@ -152,6 +302,136 @@
       "field_id": "selection_rules",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
       "value": "Как узнать и поменять ПИН-код карты ВТБ"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Изумруд",
+      "tier_id": "vtb_privilege_1",
+      "field_id": "internal_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Изумруд",
+      "tier_id": "vtb_privilege_1",
+      "field_id": "interbank_transfers_remote",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Прошу руководство банка ВТБ РТ ( филиал по адресу: Проспект Ямашева, 61б) отметить высокопрофессиональный и ответственный подход к своей работе и имиджевой составляющей банка в целом менеджеров Ярмухаметовой Регины Азатовны и Галлямова Артура Рафиковича."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Изумруд",
+      "tier_id": "vtb_privilege_1",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Изумруд",
+      "tier_id": "vtb_privilege_1",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Изумруд",
+      "tier_id": "vtb_privilege_1",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Изумруд",
+      "tier_id": "vtb_privilege_1",
+      "field_id": "atm_free_withdrawal",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Банкоматы на карте | Банкоматы ВТБ банка | и банкоматы в количестве 11456 шт."
+    },
+    {
+      "severity": "warning",
+      "code": "required_field",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Изумруд",
+      "tier_id": "vtb_privilege_1",
+      "field_id": "other_benefits",
+      "message": "Ключевое поле не найдено",
+      "value": "не найдено"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Сапфир",
+      "tier_id": "vtb_privilege_2",
+      "field_id": "internal_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Сапфир",
+      "tier_id": "vtb_privilege_2",
+      "field_id": "interbank_transfers_remote",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Прошу руководство банка ВТБ РТ ( филиал по адресу: Проспект Ямашева, 61б) отметить высокопрофессиональный и ответственный подход к своей работе и имиджевой составляющей банка в целом менеджеров Ярмухаметовой Регины Азатовны и Галлямова Артура Рафиковича."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Сапфир",
+      "tier_id": "vtb_privilege_2",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Сапфир",
+      "tier_id": "vtb_privilege_2",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Сапфир",
+      "tier_id": "vtb_privilege_2",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Сапфир",
+      "tier_id": "vtb_privilege_2",
+      "field_id": "atm_free_withdrawal",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Банкоматы на карте | Банкоматы ВТБ банка | и банкоматы в количестве 11456 шт."
     },
     {
       "severity": "error",
@@ -237,6 +517,76 @@
       "severity": "error",
       "code": "field_marker",
       "bank": "ВТБ",
+      "tier": "Привилегия — Сапфир",
+      "tier_id": "vtb_privilege_2",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: ON·PACK",
+      "value": "• Приоритетная регистрация в аэропорту [опция на выбор]"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Рубин",
+      "tier_id": "vtb_privilege_3",
+      "field_id": "internal_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Рубин",
+      "tier_id": "vtb_privilege_3",
+      "field_id": "interbank_transfers_remote",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Прошу руководство банка ВТБ РТ ( филиал по адресу: Проспект Ямашева, 61б) отметить высокопрофессиональный и ответственный подход к своей работе и имиджевой составляющей банка в целом менеджеров Ярмухаметовой Регины Азатовны и Галлямова Артура Рафиковича."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Рубин",
+      "tier_id": "vtb_privilege_3",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Рубин",
+      "tier_id": "vtb_privilege_3",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Рубин",
+      "tier_id": "vtb_privilege_3",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Рубин",
+      "tier_id": "vtb_privilege_3",
+      "field_id": "atm_free_withdrawal",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Банкоматы на карте | Банкоматы ВТБ банка | и банкоматы в количестве 11456 шт."
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "ВТБ",
       "tier": "Привилегия — Рубин",
       "tier_id": "vtb_privilege_3",
       "field_id": "selection_rules",
@@ -292,6 +642,76 @@
       "field_id": "taxi",
       "message": "Не найден обязательный маркер: 1000 ₽",
       "value": "До 6 компенсаций поездок на такси в месяц; до 1 000 ₽ за один чек. Используется общий баланс: 6 преференций в месяц из общего баланса; 1 преференция = 1 использование выбранного сервиса; поездки делят его с другими сервисами"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Рубин",
+      "tier_id": "vtb_privilege_3",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: ON·PACK",
+      "value": "• Приоритетная регистрация в аэропорту [опция на выбор]"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Бриллиант",
+      "tier_id": "vtb_privilege_4",
+      "field_id": "internal_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Бриллиант",
+      "tier_id": "vtb_privilege_4",
+      "field_id": "interbank_transfers_remote",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Прошу руководство банка ВТБ РТ ( филиал по адресу: Проспект Ямашева, 61б) отметить высокопрофессиональный и ответственный подход к своей работе и имиджевой составляющей банка в целом менеджеров Ярмухаметовой Регины Азатовны и Галлямова Артура Рафиковича."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Бриллиант",
+      "tier_id": "vtb_privilege_4",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Бриллиант",
+      "tier_id": "vtb_privilege_4",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Бриллиант",
+      "tier_id": "vtb_privilege_4",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Бриллиант",
+      "tier_id": "vtb_privilege_4",
+      "field_id": "atm_free_withdrawal",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Банкоматы на карте | Банкоматы ВТБ банка | и банкоматы в количестве 11456 шт."
     },
     {
       "severity": "error",
@@ -354,6 +774,16 @@
       "value": "До 10 компенсаций поездок на такси в месяц; до 1 000 ₽ за один чек. Используется общий баланс: 10 преференций в месяц из общего баланса; 1 преференция = 1 использование выбранного сервиса; поездки делят его с другими сервисами"
     },
     {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "ВТБ",
+      "tier": "Привилегия — Бриллиант",
+      "tier_id": "vtb_privilege_4",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: ON·PACK",
+      "value": "• Приоритетная регистрация в аэропорту [опция на выбор]"
+    },
+    {
       "severity": "warning",
       "code": "publication_blocked",
       "bank": "ВТБ",
@@ -369,9 +799,9 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 5",
       "tier_id": "vtb_prime_5",
-      "field_id": "auto",
+      "field_id": "last_change_date",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | Легковые автомобили"
+      "value": "Обновлено 06.08"
     },
     {
       "severity": "warning",
@@ -379,9 +809,49 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 5",
       "tier_id": "vtb_prime_5",
-      "field_id": "last_change_date",
+      "field_id": "interbank_transfers_office",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Обновлено 30.07"
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 5",
+      "tier_id": "vtb_prime_5",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 5",
+      "tier_id": "vtb_prime_5",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "required_field",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 5",
+      "tier_id": "vtb_prime_5",
+      "field_id": "other_benefits",
+      "message": "Ключевое поле не найдено",
+      "value": "не найдено"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 5",
+      "tier_id": "vtb_prime_5",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: ON·PACK",
+      "value": "не найдено"
     },
     {
       "severity": "warning",
@@ -399,9 +869,9 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 6",
       "tier_id": "vtb_prime_6",
-      "field_id": "auto",
+      "field_id": "last_change_date",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | Легковые автомобили"
+      "value": "Обновлено 06.08"
     },
     {
       "severity": "warning",
@@ -409,9 +879,49 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 6",
       "tier_id": "vtb_prime_6",
-      "field_id": "last_change_date",
+      "field_id": "interbank_transfers_office",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Обновлено 30.07"
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 6",
+      "tier_id": "vtb_prime_6",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 6",
+      "tier_id": "vtb_prime_6",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "required_field",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 6",
+      "tier_id": "vtb_prime_6",
+      "field_id": "other_benefits",
+      "message": "Ключевое поле не найдено",
+      "value": "не найдено"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 6",
+      "tier_id": "vtb_prime_6",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: ON·PACK",
+      "value": "не найдено"
     },
     {
       "severity": "warning",
@@ -429,9 +939,9 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 7",
       "tier_id": "vtb_prime_7",
-      "field_id": "auto",
+      "field_id": "last_change_date",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | Легковые автомобили"
+      "value": "Обновлено 06.08"
     },
     {
       "severity": "warning",
@@ -439,9 +949,49 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 7",
       "tier_id": "vtb_prime_7",
-      "field_id": "last_change_date",
+      "field_id": "interbank_transfers_office",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Обновлено 30.07"
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 7",
+      "tier_id": "vtb_prime_7",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 7",
+      "tier_id": "vtb_prime_7",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "required_field",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 7",
+      "tier_id": "vtb_prime_7",
+      "field_id": "other_benefits",
+      "message": "Ключевое поле не найдено",
+      "value": "не найдено"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 7",
+      "tier_id": "vtb_prime_7",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: ON·PACK",
+      "value": "не найдено"
     },
     {
       "severity": "warning",
@@ -459,9 +1009,9 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 8",
       "tier_id": "vtb_prime_8",
-      "field_id": "auto",
+      "field_id": "last_change_date",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | Легковые автомобили"
+      "value": "Обновлено 06.08"
     },
     {
       "severity": "warning",
@@ -469,9 +1019,49 @@
       "bank": "ВТБ",
       "tier": "Прайм+ — уровень 8",
       "tier_id": "vtb_prime_8",
-      "field_id": "last_change_date",
+      "field_id": "interbank_transfers_office",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Обновлено 30.07"
+      "value": "Онлайн-заявка на автокредит | Выгодные автокредиты | возможность открыть вклад или ИИС в ВТБ Онлайн без визита в офис"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 8",
+      "tier_id": "vtb_prime_8",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Перевод с карты на карту | переводы по миру с карты на карту в любую страну | переводы с карты на карту, со счёта на счёт, переводы внутри банка и даже в другие банки"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 8",
+      "tier_id": "vtb_prime_8",
+      "field_id": "legal_entity_payments",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Юридическим лицам"
+    },
+    {
+      "severity": "warning",
+      "code": "required_field",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 8",
+      "tier_id": "vtb_prime_8",
+      "field_id": "other_benefits",
+      "message": "Ключевое поле не найдено",
+      "value": "не найдено"
+    },
+    {
+      "severity": "error",
+      "code": "field_marker",
+      "bank": "ВТБ",
+      "tier": "Прайм+ — уровень 8",
+      "tier_id": "vtb_prime_8",
+      "field_id": "other_benefits",
+      "message": "Не найден обязательный маркер: ON·PACK",
+      "value": "не найдено"
     },
     {
       "severity": "warning",
@@ -491,7 +1081,7 @@
       "tier_id": "gpb_premium_1",
       "field_id": "card_terms",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Премиальная карта МИР Supreme от Газпромбанка | Премиальная карта для ваших возможностей | Бесплатное снятие наличных"
+      "value": "Премиальная карта «Мир» Supreme от Газпромбанка | Премиальная карта для ваших возможностей | Бесплатное снятие наличных"
     },
     {
       "severity": "warning",
@@ -535,6 +1125,106 @@
     },
     {
       "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "internal_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Условия предоставления физическим лицам – клиентам Банка ГПБ (АО) сервиса Газпром Бонус «Премиум» (с 06.07.2026) | Условия предоставления физическим лицам – клиентам Банка ГПБ (АО) опции «Накопления» (с 06.07.2026) | Тарифы по предоставлению физическим лицам – клиентам Банка ГПБ (АО) опции «Накопления» (с 01.01.2026)"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Покрытие до 1 млн $ на всех членов семьи | Покрытие до 500 000 ₽ | Покрытие до 1 млн ₽"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Переводы по номеру карты — бесплатно до 50 000 ₽ (вместо 0 ₽) | Лимит на переводы другим людям в любые банки РФ через СБП или по номеру карты — до 10 млн ₽ в месяц"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "sbp_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Переводы другим людям в любые банки РФ через СБП — бесплатно до 200 000 ₽ в месяц (вместо 150 000 ₽) | Лимит на переводы другим людям в любые банки РФ через СБП или по номеру карты — до 10 млн ₽ в месяц"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "atm_free_withdrawal",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Бесплатное снятие наличных в любых банкоматах по всему миру"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "atm_daily_limit",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Бесплатное снятие наличных в любых банкоматах по всему миру"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "cash_over_limit_fee",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Комиссия не списывается за первый расчетный период предоставления сервиса Газпром Бонус «Премиум», в том числе если у вас есть активный сервис Газпром Бонус «Плюс». | Комиссия не списывается при выполнении условий бесплатного обслуживания."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "insurance_foreign_coverage",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Фаст-трек и посещение бизнес-залов доступно в России и за рубежом. | Рекомендуется направить запрос на организацию трансфера не позднее чем за 24 часа для заказа поездки по России, за 4 часа — в Москве и Санкт-Петербурге и за 48 часов — за рубежом. | Заказ трансферов доступен в России и за рубежом."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "insurance_trip_duration",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Возмещение списанной суммы (до 3 000 ₽ за одного посетителя) будет осуществлено на карту в течение 90 дней с даты оплаты."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 1",
+      "tier_id": "gpb_premium_1",
+      "field_id": "personal_banking_support",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Персональный менеджер и Консьерж 24/7, премиальные зоны без очередей и выделенная телефонная линия | Если вы не знаете, кто ваш персональный менеджер, пожалуйста, позвоните по телефону 8 (495) 719-19-11 или 8 800 719-19-11 (для звонков с территории России). | Если вы не знаете, кто ваш персональный менеджер, его контакты вы можете найти в профиле мобильного приложения для Android в карточке премиальной карты (в личном кабинете премиального клиента) или в Интернет-банке для IOS, или обратившись п"
+    },
+    {
+      "severity": "warning",
       "code": "required_field",
       "bank": "Газпромбанк",
       "tier": "Премиум — уровень 1",
@@ -561,7 +1251,7 @@
       "tier_id": "gpb_premium_2",
       "field_id": "card_terms",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Премиальная карта МИР Supreme от Газпромбанка | Премиальная карта для ваших возможностей | Бесплатное снятие наличных"
+      "value": "Премиальная карта «Мир» Supreme от Газпромбанка | Премиальная карта для ваших возможностей | Бесплатное снятие наличных"
     },
     {
       "severity": "warning",
@@ -592,6 +1282,86 @@
       "field_id": "last_change_date",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
       "value": "Премиум» (действует с 22.07.2026) | Программа начисления бонусных миль «Аэрофлот Бонус» (действует с 22.09.2025) | Программа лояльности «Газпромбанк – Travel» (действует с 27.01.2026)"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "internal_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Условия предоставления физическим лицам – клиентам Банка ГПБ (АО) сервиса Газпром Бонус «Премиум» (с 06.07.2026) | Условия предоставления физическим лицам – клиентам Банка ГПБ (АО) опции «Накопления» (с 06.07.2026) | Тарифы по предоставлению физическим лицам – клиентам Банка ГПБ (АО) опции «Накопления» (с 01.01.2026)"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Покрытие до 1 млн $ на всех членов семьи | Покрытие до 500 000 ₽ | Покрытие до 1 млн ₽"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Переводы по номеру карты — бесплатно до 50 000 ₽ (вместо 0 ₽) | Лимит на переводы другим людям в любые банки РФ через СБП или по номеру карты — до 10 млн ₽ в месяц"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "sbp_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Переводы другим людям в любые банки РФ через СБП — бесплатно до 200 000 ₽ в месяц (вместо 150 000 ₽) | Лимит на переводы другим людям в любые банки РФ через СБП или по номеру карты — до 10 млн ₽ в месяц"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "cash_over_limit_fee",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Комиссия не списывается за первый расчетный период предоставления сервиса Газпром Бонус «Премиум», в том числе если у вас есть активный сервис Газпром Бонус «Плюс». | Комиссия не списывается при выполнении условий бесплатного обслуживания."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "insurance_foreign_coverage",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Фаст-трек и посещение бизнес-залов доступно в России и за рубежом. | Рекомендуется направить запрос на организацию трансфера не позднее чем за 24 часа для заказа поездки по России, за 4 часа — в Москве и Санкт-Петербурге и за 48 часов — за рубежом. | Заказ трансферов доступен в России и за рубежом."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "insurance_trip_duration",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Возмещение списанной суммы (до 3 000 ₽ за одного посетителя) будет осуществлено на карту в течение 90 дней с даты оплаты."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 2",
+      "tier_id": "gpb_premium_2",
+      "field_id": "personal_banking_support",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Персональный менеджер и Консьерж 24/7, премиальные зоны без очередей и выделенная телефонная линия | Если вы не знаете, кто ваш персональный менеджер, пожалуйста, позвоните по телефону 8 (495) 719-19-11 или 8 800 719-19-11 (для звонков с территории России). | Если вы не знаете, кто ваш персональный менеджер, его контакты вы можете найти в профиле мобильного приложения для Android в карточке премиальной карты (в личном кабинете премиального клиента) или в Интернет-банке для IOS, или обратившись п"
     },
     {
       "severity": "warning",
@@ -621,7 +1391,7 @@
       "tier_id": "gpb_premium_3",
       "field_id": "card_terms",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Премиальная карта МИР Supreme от Газпромбанка | Премиальная карта для ваших возможностей | Бесплатное снятие наличных"
+      "value": "Премиальная карта «Мир» Supreme от Газпромбанка | Премиальная карта для ваших возможностей | Бесплатное снятие наличных"
     },
     {
       "severity": "warning",
@@ -655,6 +1425,86 @@
     },
     {
       "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "internal_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Условия предоставления физическим лицам – клиентам Банка ГПБ (АО) сервиса Газпром Бонус «Премиум» (с 06.07.2026) | Условия предоставления физическим лицам – клиентам Банка ГПБ (АО) опции «Накопления» (с 06.07.2026) | Тарифы по предоставлению физическим лицам – клиентам Банка ГПБ (АО) опции «Накопления» (с 01.01.2026)"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Покрытие до 1 млн $ на всех членов семьи | Покрытие до 500 000 ₽ | Покрытие до 1 млн ₽"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "card_to_card_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Переводы по номеру карты — бесплатно до 50 000 ₽ (вместо 0 ₽) | Лимит на переводы другим людям в любые банки РФ через СБП или по номеру карты — до 10 млн ₽ в месяц"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "sbp_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Переводы другим людям в любые банки РФ через СБП — бесплатно до 200 000 ₽ в месяц (вместо 150 000 ₽) | Лимит на переводы другим людям в любые банки РФ через СБП или по номеру карты — до 10 млн ₽ в месяц"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "cash_over_limit_fee",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Комиссия не списывается за первый расчетный период предоставления сервиса Газпром Бонус «Премиум», в том числе если у вас есть активный сервис Газпром Бонус «Плюс». | Комиссия не списывается при выполнении условий бесплатного обслуживания."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "insurance_foreign_coverage",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Фаст-трек и посещение бизнес-залов доступно в России и за рубежом. | Рекомендуется направить запрос на организацию трансфера не позднее чем за 24 часа для заказа поездки по России, за 4 часа — в Москве и Санкт-Петербурге и за 48 часов — за рубежом. | Заказ трансферов доступен в России и за рубежом."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "insurance_trip_duration",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Возмещение списанной суммы (до 3 000 ₽ за одного посетителя) будет осуществлено на карту в течение 90 дней с даты оплаты."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Премиум — уровень 3",
+      "tier_id": "gpb_premium_3",
+      "field_id": "personal_banking_support",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Персональный менеджер и Консьерж 24/7, премиальные зоны без очередей и выделенная телефонная линия | Если вы не знаете, кто ваш персональный менеджер, пожалуйста, позвоните по телефону 8 (495) 719-19-11 или 8 800 719-19-11 (для звонков с территории России). | Если вы не знаете, кто ваш персональный менеджер, его контакты вы можете найти в профиле мобильного приложения для Android в карточке премиальной карты (в личном кабинете премиального клиента) или в Интернет-банке для IOS, или обратившись п"
+    },
+    {
+      "severity": "warning",
       "code": "required_field",
       "bank": "Газпромбанк",
       "tier": "Премиум — уровень 3",
@@ -676,6 +1526,16 @@
     {
       "severity": "warning",
       "code": "publication_blocked",
+      "bank": "Газпромбанк",
+      "tier": "Private Banking",
+      "tier_id": "gpb_private",
+      "field_id": "insurance_foreign_coverage",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "В России и за рубежом"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
       "bank": "Райффайзен Банк",
       "tier": "Premium — платное обслуживание",
       "tier_id": "raif_premium_1",
@@ -739,9 +1599,9 @@
       "bank": "Райффайзен Банк",
       "tier": "Premium — платное обслуживание",
       "tier_id": "raif_premium_1",
-      "field_id": "auto",
+      "field_id": "selection_rules",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Доставим автомобиль в сервисный центр и обратно — без вашего участия | Автоконсьерж предоставляется ООО «ДЕОС ГРУПП» и является бесплатной для владельцев пакетов услуг «Премиальный 5» /«Премиальный»."
+      "value": "Промокод активен один раз в месяц и доступен в мобильном приложении Райффайзен Онлайн."
     },
     {
       "severity": "warning",
@@ -749,9 +1609,79 @@
       "bank": "Райффайзен Банк",
       "tier": "Premium — платное обслуживание",
       "tier_id": "raif_premium_1",
-      "field_id": "selection_rules",
+      "field_id": "interbank_transfers_remote",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Промокод активен один раз в месяц и доступен в мобильном приложении Райффайзен Онлайн."
+      "value": "Руководство владельца"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Офисы и банкоматы | Подробная информация о программе страхования доступна на сайте www.raif.ru и в офисах банка."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "sbp_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Оплаты валютными картами, переводом СБП (оплата QR-кодом), картой на 3 лицо, картой юридического лица — для компенсации недоступны."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "atm_free_withdrawal",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Офисы и банкоматы"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "atm_daily_limit",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Офисы и банкоматы"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "cash_over_limit_fee",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Ежемесячная комиссия за премиальное обслуживание ПУ — 2500 ₽."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "insurance_trip_count",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Количество поездок в течение срока действия сертификата не ограничено."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "personal_banking_support",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Персональный менеджер в банке и выделенная премиум‑линия 24/7"
     },
     {
       "severity": "warning",
@@ -760,6 +1690,16 @@
       "tier": "Premium — платное обслуживание",
       "tier_id": "raif_premium_1",
       "field_id": "concierge",
+      "message": "Ключевое поле не найдено",
+      "value": "не найдено"
+    },
+    {
+      "severity": "warning",
+      "code": "required_field",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — платное обслуживание",
+      "tier_id": "raif_premium_1",
+      "field_id": "other_benefits",
       "message": "Ключевое поле не найдено",
       "value": "не найдено"
     },
@@ -829,9 +1769,9 @@
       "bank": "Райффайзен Банк",
       "tier": "Premium — по обороту покупок",
       "tier_id": "raif_premium_2",
-      "field_id": "auto",
+      "field_id": "selection_rules",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Доставим автомобиль в сервисный центр и обратно — без вашего участия | Автоконсьерж предоставляется ООО «ДЕОС ГРУПП» и является бесплатной для владельцев пакетов услуг «Премиальный 5» /«Премиальный»."
+      "value": "Промокод активен один раз в месяц и доступен в мобильном приложении Райффайзен Онлайн."
     },
     {
       "severity": "warning",
@@ -839,9 +1779,79 @@
       "bank": "Райффайзен Банк",
       "tier": "Premium — по обороту покупок",
       "tier_id": "raif_premium_2",
-      "field_id": "selection_rules",
+      "field_id": "interbank_transfers_remote",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Промокод активен один раз в месяц и доступен в мобильном приложении Райффайзен Онлайн."
+      "value": "Руководство владельца"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Офисы и банкоматы | Подробная информация о программе страхования доступна на сайте www.raif.ru и в офисах банка."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "sbp_transfers",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Оплаты валютными картами, переводом СБП (оплата QR-кодом), картой на 3 лицо, картой юридического лица — для компенсации недоступны."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "atm_free_withdrawal",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Офисы и банкоматы"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "atm_daily_limit",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Офисы и банкоматы"
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "cash_over_limit_fee",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Ежемесячная комиссия за премиальное обслуживание ПУ — 2500 ₽."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "insurance_trip_count",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Количество поездок в течение срока действия сертификата не ограничено."
+    },
+    {
+      "severity": "warning",
+      "code": "publication_blocked",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "personal_banking_support",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Персональный менеджер в банке и выделенная премиум‑линия 24/7"
     },
     {
       "severity": "warning",
@@ -850,6 +1860,16 @@
       "tier": "Premium — по обороту покупок",
       "tier_id": "raif_premium_2",
       "field_id": "concierge",
+      "message": "Ключевое поле не найдено",
+      "value": "не найдено"
+    },
+    {
+      "severity": "warning",
+      "code": "required_field",
+      "bank": "Райффайзен Банк",
+      "tier": "Premium — по обороту покупок",
+      "tier_id": "raif_premium_2",
+      "field_id": "other_benefits",
       "message": "Ключевое поле не найдено",
       "value": "не найдено"
     },
@@ -919,9 +1939,9 @@
       "bank": "Райффайзен Банк",
       "tier": "Premium — от 1.5 млн ₽",
       "tier_id": "raif_premium_3",
-      "field_id": "auto",
+      "field_id": "selection_rules",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Доставим автомобиль в сервисный центр и обратно — без вашего участия | Автоконсьерж предоставляется ООО «ДЕОС ГРУПП» и является бесплатной для владельцев пакетов услуг «Премиальный 5» /«Премиальный»."
+      "value": "Промокод активен один раз в месяц и доступен в мобильном приложении Райффайзен Онлайн."
     },
     {
       "severity": "warning",
@@ -929,202 +1949,72 @@
       "bank": "Райффайзен Банк",
       "tier": "Premium — от 1.5 млн ₽",
       "tier_id": "raif_premium_3",
-      "field_id": "selection_rules",
+      "field_id": "interbank_transfers_remote",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Промокод активен один раз в месяц и доступен в мобильном приложении Райффайзен Онлайн."
+      "value": "Руководство владельца"
     },
     {
       "severity": "warning",
-      "code": "required_field",
+      "code": "publication_blocked",
       "bank": "Райффайзен Банк",
       "tier": "Premium — от 1.5 млн ₽",
       "tier_id": "raif_premium_3",
-      "field_id": "concierge",
-      "message": "Ключевое поле не найдено",
-      "value": "не найдено"
+      "field_id": "interbank_transfers_office",
+      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
+      "value": "Офисы и банкоматы | Подробная информация о программе страхования доступна на сайте www.raif.ru и в офисах банка."
     },
     {
       "severity": "warning",
       "code": "publication_blocked",
       "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "concierge",
+      "tier": "Premium — от 1.5 млн ₽",
+      "tier_id": "raif_premium_3",
+      "field_id": "sbp_transfers",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Автоконсьерж предоставляется ООО «ДЕОС ГРУПП» и является бесплатной для владельцев пакетов услуг «Премиальный 5» /«Премиальный»."
+      "value": "Оплаты валютными картами, переводом СБП (оплата QR-кодом), картой на 3 лицо, картой юридического лица — для компенсации недоступны."
     },
     {
       "severity": "warning",
       "code": "publication_blocked",
       "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "cashback",
+      "tier": "Premium — от 1.5 млн ₽",
+      "tier_id": "raif_premium_3",
+      "field_id": "atm_free_withdrawal",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Без ограничений максимальной суммы кэшбэка. | Без условий по минимальной сумме расходной операции, на которую начисляется кэшбэк. | Кэшбэк — возврат средств, без ограничений максимальной суммы кэшбэка и условий по минимальной сумме расходной операции."
+      "value": "Офисы и банкоматы"
     },
     {
       "severity": "warning",
       "code": "publication_blocked",
       "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "card_terms",
+      "tier": "Premium — от 1.5 млн ₽",
+      "tier_id": "raif_premium_3",
+      "field_id": "atm_daily_limit",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Премиальная карта | Премиальная карта Mir Supreme. | За следующие расходные операции, в том числе те, которым в ТСП присвоен четырехзначный МСС-код, кэшбэк не начисляется: денежные переводы — МСС-код 4829, 6530, 6531, 6533, 6534, 6536, 6537, 6538; комиссии, квази-кэш-операции; операции в пользу кредитных организаций; пополнение электронных кошельков —"
+      "value": "Офисы и банкоматы"
     },
     {
       "severity": "warning",
       "code": "publication_blocked",
       "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "cash_withdrawal",
+      "tier": "Premium — от 1.5 млн ₽",
+      "tier_id": "raif_premium_3",
+      "field_id": "cash_over_limit_fee",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Офисы и банкоматы | За следующие расходные операции, в том числе те, которым в ТСП присвоен четырехзначный МСС-код, кэшбэк не начисляется: денежные переводы — МСС-код 4829, 6530, 6531, 6533, 6534, 6536, 6537, 6538; комиссии, квази-кэш-операции; операции в пользу кредитных организаций; пополнение электронных кошельков —"
+      "value": "Ежемесячная комиссия за премиальное обслуживание ПУ — 2500 ₽."
     },
     {
       "severity": "warning",
       "code": "publication_blocked",
       "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "supreme",
+      "tier": "Premium — от 1.5 млн ₽",
+      "tier_id": "raif_premium_3",
+      "field_id": "insurance_trip_count",
       "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Премиальная карта Mir Supreme."
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "deposits",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Накопительное страхование | Учитываются остатки на рублевых вкладах, текущих, накопительных и брокерских счетах, расчетная сумма активов по курсу ЦБ в Райффайзен Инвестициях и УК Райффайзен и деньги на кредитной карте свыше кредитного лимита. | Информация о процентных ставках по договорам банковского вклада с физическими лицами"
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "auto",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Доставим автомобиль в сервисный центр и обратно — без вашего участия | Автоконсьерж предоставляется ООО «ДЕОС ГРУПП» и является бесплатной для владельцев пакетов услуг «Премиальный 5» /«Премиальный»."
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "selection_rules",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Промокод активен один раз в месяц и доступен в мобильном приложении Райффайзен Онлайн."
-    },
-    {
-      "severity": "warning",
-      "code": "required_field",
-      "bank": "Райффайзен Банк",
-      "tier": "Premium — от 5 млн ₽",
-      "tier_id": "raif_premium_4",
-      "field_id": "concierge",
-      "message": "Ключевое поле не найдено",
-      "value": "не найдено"
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "N26",
-      "tier": "Go (экс-You)",
-      "tier_id": "n26_go",
-      "field_id": "cash_withdrawal",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Use your N26 card worldwide with the best exchange rates, and never pay for ATM withdrawals in foreign currencies. | 1 Unlimited free ATM withdrawals in the local currency outside the eurozone is exclusive to N26 Go and Metal. | N26 Go is a paid bank account that includes a physical Debit Mastercard, six virtual cards, and five free ATM withdrawals in the eurozone per month."
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "N26",
-      "tier": "Metal",
-      "tier_id": "n26_metal",
-      "field_id": "cash_withdrawal",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Move beyond everyday banking with a metal card, extensive insurance coverage, free ATM withdrawals worldwide, and our best savings rates. | How many free ATM withdrawals can I use each month with N26 Metal? | Your N26 Metal Mastercard includes 8 fee-free ATM withdrawals in the eurozone per month."
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Wise",
-      "tier": "Wise (multi-currency, без тиров)",
-      "tier_id": "wise_main",
-      "field_id": "cash_withdrawal",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Клиенты с картой Wise, сменившие страну проживания, могут посмотреть комиссии за снятие денег в банкомате в разделе “Расходные лимиты” в приложении, наш | Снятие наличных в банкоматах на общую сумму до 250 USD в течение календарного месяца осуществляется без комиссий. | После того как вы снимете 250 USD в течение календарного месяца, с каждой операции по снятию наличных в банкомате взимается комиссия в размере 1,95 USD + 1,95 %."
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Wise",
-      "tier": "Wise (multi-currency, без тиров)",
-      "tier_id": "wise_main",
-      "field_id": "selectable_options",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Выбор сайта по странам"
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Monzo",
-      "tier": "Extra",
-      "tier_id": "monzo_extra",
-      "field_id": "cash_withdrawal",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Fee-free cash withdrawals abroad"
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Monzo",
-      "tier": "Max",
-      "tier_id": "monzo_max",
-      "field_id": "cash_withdrawal",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Fee-free cash withdrawals abroad"
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Яндекс Плюс",
-      "tier": "Яндекс Плюс",
-      "tier_id": "yandex_plus_main",
-      "field_id": "price",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Мультиподписка Яндекс Плюс стоит 4490 ₽ в год. | Выгода до 16% на покупку годовой мультиподписки Яндекс Плюс рассчитана в сравнении со стоимостью ежемесячной мультиподписки Яндекс Плюс (449 ₽) при её оплате в течение 12 месяцев."
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Яндекс Плюс",
-      "tier": "Яндекс Плюс",
-      "tier_id": "yandex_plus_main",
-      "field_id": "cashback",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Возможность тратить баллы Плюса в сервисах Яндекса | Что такое баллы Плюса? | Получать баллы можно с программой лояльности Яндекса Свои Плюсы."
-    },
-    {
-      "severity": "warning",
-      "code": "publication_blocked",
-      "bank": "Яндекс Плюс",
-      "tier": "Яндекс Плюс",
-      "tier_id": "yandex_plus_main",
-      "field_id": "entertainment",
-      "message": "Generic keyword-snippet не публикуется в HTML без подтверждения",
-      "value": "Кино, ТВ‑каналы и спортивные трансляции | Смотрите всей семьей на любых устройствах на Кинопоиске | Музыка и подкасты"
+      "value": "Количество поездок в течение срока действия сертификата не ограничено."
     }
   ],
   "excel_updated": true,
   "html_generated": true,
-  "github_pages_published": true
+  "github_pages_published": false
 }

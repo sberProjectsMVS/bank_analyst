@@ -28,6 +28,11 @@ from scanner.curated import STALE_DAYS
 from scanner.sources import NOT_FOUND, SOURCE_META, source_priority_rank
 
 QUALITY_RANK = {"curated": 0, "structured": 1, "snippet": 2, "ambiguous": 3}
+FACT_METADATA_KEYS = (
+    "document_title", "quoted_fragment", "effective_date", "pdf_page",
+    "recipient", "channel", "free_limit", "technical_limit", "period",
+    "over_limit_fee", "region",
+)
 
 
 def _numbers(text: str) -> frozenset:
@@ -52,7 +57,7 @@ def merge_tier_fields(parsed_sources: list, curated: dict, field_ids: list,
         candidates = []
         if fid in curated:
             fact = curated[fid]
-            candidates.append({
+            candidate = {
                 "value": fact["value"],
                 "source_id": "curated",
                 "source_url": fact["source_url"],
@@ -63,7 +68,11 @@ def merge_tier_fields(parsed_sources: list, curated: dict, field_ids: list,
                 "bank_id": bank_id,
                 "tier_id": tier_id,
                 "field_id": fid,
+            }
+            candidate.update({
+                key: fact[key] for key in FACT_METADATA_KEYS if key in fact
             })
+            candidates.append(candidate)
         for src in parsed_sources:
             value = src["fields"].get(fid, NOT_FOUND)
             if value == NOT_FOUND:
@@ -128,7 +137,7 @@ def _build_field(primary: dict, rest: list) -> dict:
         notes.append(f"проверено {primary['date_checked']} — "
                      f"старше {STALE_DAYS} дн, проверить актуальность")
 
-    return {
+    result = {
         "value": primary["value"],
         "bank_id": primary.get("bank_id", ""),
         "tier_id": primary.get("tier_id", ""),
@@ -151,6 +160,10 @@ def _build_field(primary: dict, rest: list) -> dict:
         "alternatives": alternatives,
         "note": "; ".join(notes),
     }
+    result.update({
+        key: primary[key] for key in FACT_METADATA_KEYS if key in primary
+    })
+    return result
 
 
 def _empty_field(scan_date: str, bank_id: str = "", tier_id: str = "",

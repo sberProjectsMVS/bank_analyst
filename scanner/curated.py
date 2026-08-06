@@ -27,6 +27,18 @@ _SBER_FIRST = "https://www.sberbank.ru/first"
 _SBER_VKLAD = "https://www.sberbank.ru/ru/person/premium/premium_vklad"
 _SBER_FIRST_VKLADY = "https://www.sberbank.ru/ru/person/sb1/vklad/vse_vklady"
 _SBER_CARD = "https://www.sberbank.ru/ru/person/bank_cards/debit/sberkarta_premium"
+_SBER_PREMIUM_TARIFF = (
+    "https://www.sberbank.ru/common/img/uploaded/files/pdf/"
+    "tarif_premobsl_07072026.pdf"
+)
+_SBER_PREMIER_VZR = (
+    "https://www.sberbank.ru/common/img/uploaded/pdf/"
+    "usloviya_vzr_newpremier_2025.pdf"
+)
+_SBER_FIRST_4_VZR = (
+    "https://www.sberbank.ru/common/img/uploaded/files/sb1/"
+    "usloviya_vzr_premobsl_4.pdf"
+)
 _PBI_SBER = "https://premiumbanking.info/sber"
 _ALFA_ACLUB_OFFICIAL = "https://alfabank.ru/a-club/"
 
@@ -40,6 +52,19 @@ def _fact_from(source_fact, value, note=""):
         "date_checked": source_fact["date_checked"],
         "note": note or source_fact.get("note", ""),
     }
+
+
+def _scoped_fact(value, source_url, document_title, quoted_fragment, **metadata):
+    fact = {
+        "value": value,
+        "source_url": source_url,
+        "date_checked": "2026-07-31",
+        "document_title": document_title,
+        "quoted_fragment": quoted_fragment,
+        "note": metadata.pop("note", ""),
+    }
+    fact.update(metadata)
+    return fact
 
 # ---------- Карты (Премиальная СберКарта, тарифы одной страницы для всех уровней)
 _PREMIER_CARD = {
@@ -118,6 +143,339 @@ _SBER_TRANSFER_LEVELS = {
                  "Лимит относится к переводам клиентам Сбера и платежам юрлицам"),
     },
 }
+
+_SBER_TIER_NUMBERS = {
+    "sber_premier_1": 1,
+    "sber_premier_2": 2,
+    "sber_premier_3": 3,
+    "sber_first_4": 4,
+    "sber_first_5": 5,
+    "sber_private_6": 6,
+}
+
+
+def _sber_operation_facts(tier_id):
+    level = _SBER_TIER_NUMBERS[tier_id]
+    internal_value = (
+        "Переводы другому физлицу внутри Сбера через приложение/УКО: "
+        "до 1 000 000 ₽ включительно в месяц без комиссии; сверх лимита "
+        "0,5% от суммы, максимум 5 000 ₽"
+        if level <= 2 else
+        "Переводы другому физлицу внутри Сбера через приложение/УКО: "
+        "без комиссии; технический лимит в данном источнике не указан"
+    )
+    internal = _scoped_fact(
+        internal_value, _SBER_PREMIUM_TARIFF,
+        "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+        internal_value,
+        recipient="физическое лицо — клиент Сбера",
+        channel="приложение / УКО",
+        free_limit="1 000 000 ₽" if level <= 2 else "без комиссии",
+        technical_limit=(
+            "не указан" if level >= 3 else "не выделен отдельно"
+        ),
+        period="месяц" if level <= 2 else "",
+        over_limit_fee=(
+            "0,5% от суммы, максимум 5 000 ₽" if level <= 2 else ""
+        ),
+        effective_date="2026-07-07",
+        pdf_page=4,
+    )
+    marketing_limits = {
+        1: ("1 000 000 ₽", "месяц"),
+        2: ("1 000 000 ₽", "месяц"),
+        3: ("1 000 000 ₽", "сутки"),
+        4: ("35 000 000 ₽", "сутки"),
+        5: ("35 000 000 ₽", "сутки"),
+        6: ("50 000 000 ₽", "сутки"),
+    }
+    marketing_limit, marketing_period = marketing_limits[level]
+    if level <= 2:
+        legal_value = (
+            "Платежи/переводы юридическим лицам в РФ в рублях через "
+            "приложение/УКО: в пределах общего лимита 1 000 000 ₽ в месяц "
+            "без комиссии; сверх лимита — по Разделам I и III Альбома тарифов"
+        )
+        legal_free_limit = "1 000 000 ₽ — общий с переводами физлицам"
+        legal_period = "месяц"
+        legal_over_limit = "по Разделам I и III Альбома тарифов"
+    else:
+        legal_value = (
+            "Платежи/переводы юридическим лицам в РФ в рублях через "
+            "приложение/УКО: без комиссии; технический лимит в данном "
+            "источнике не указан"
+        )
+        legal_free_limit = "без комиссии"
+        legal_period = ""
+        legal_over_limit = ""
+    legal = _scoped_fact(
+        legal_value,
+        _SBER_PREMIUM_TARIFF,
+        "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+        "п. 2.3: переводы на счета юридических лиц через УКО",
+        recipient="юридическое лицо",
+        channel="приложение / УКО",
+        free_limit=legal_free_limit,
+        technical_limit="не указан",
+        period=legal_period,
+        over_limit_fee=legal_over_limit,
+        effective_date="2026-07-07",
+        pdf_page=4,
+        additional_source_url=_SBER_PREMIUM_LEVELS,
+        additional_source_value=(
+            f"Маркетинговая сводка уровня {level}: {marketing_limit} "
+            f"в {marketing_period}; юридический тариф имеет приоритет"
+        ),
+        note=(
+            "Юридический тариф имеет приоритет. Маркетинговая сводка "
+            "сохранена как дополнительное пояснение, а не как технический лимит."
+        ),
+    )
+    if level <= 3:
+        interbank_remote_value = (
+            "Межбанковский перевод с дебетовой карты/платёжного счёта через "
+            "приложение/УКО: комиссия по Разделу III Альбома тарифов; "
+            "числовой бесплатный лимит в данном документе не указан"
+        )
+        interbank_office_value = (
+            "Межбанковский перевод с дебетовой карты/платёжного счёта через "
+            "офис/ОКР: комиссия по Разделу III Альбома тарифов; числовой "
+            "лимит в данном документе не указан"
+        )
+        remote_fee = "по Разделу III Альбома тарифов"
+        office_fee = "по Разделу III Альбома тарифов"
+    else:
+        interbank_remote_value = (
+            "Межбанковский перевод с дебетовой карты/платёжного счёта через "
+            "приложение/УКО: без комиссии; технический лимит в данном "
+            "источнике не указан"
+        )
+        interbank_office_value = (
+            "Межбанковский перевод с дебетовой карты/платёжного счёта через "
+            "офис/ОКР: 2% от суммы, минимум 50 ₽, максимум 10 000 ₽"
+        )
+        remote_fee = "0%"
+        office_fee = "2% от суммы, минимум 50 ₽, максимум 10 000 ₽"
+    interbank_common = {
+        "source_url": _SBER_PREMIUM_TARIFF,
+        "document_title": "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+        "recipient": "получатель в другой кредитной организации РФ",
+        "technical_limit": "не указан",
+        "period": "",
+        "effective_date": "2026-07-07",
+        "pdf_page": 5,
+    }
+    interbank_remote = _scoped_fact(
+        interbank_remote_value,
+        interbank_common["source_url"],
+        interbank_common["document_title"],
+        "п. 2.5: через УКО — бесплатно для уровней 4–6; для уровней 1–3 — Раздел III Альбома тарифов",
+        recipient=interbank_common["recipient"],
+        channel="приложение / УКО",
+        free_limit="без комиссии" if level >= 4 else "не указан",
+        technical_limit=interbank_common["technical_limit"],
+        period=interbank_common["period"],
+        over_limit_fee=remote_fee,
+        effective_date=interbank_common["effective_date"],
+        pdf_page=interbank_common["pdf_page"],
+    )
+    interbank_office = _scoped_fact(
+        interbank_office_value,
+        interbank_common["source_url"],
+        interbank_common["document_title"],
+        "п. 2.5: через ОКР — 2%, min 50 руб., max 10 000 руб. для уровней 4–6; для уровней 1–3 — Раздел III Альбома тарифов",
+        recipient=interbank_common["recipient"],
+        channel="офис / ОКР",
+        free_limit="не применяется" if level >= 4 else "не указан",
+        technical_limit=interbank_common["technical_limit"],
+        period=interbank_common["period"],
+        over_limit_fee=office_fee,
+        effective_date=interbank_common["effective_date"],
+        pdf_page=interbank_common["pdf_page"],
+    )
+    daily_limit = 1_000_000 if level <= 3 else 2_000_000 if level <= 5 else 3_000_000
+    monthly_limit = 5_000_000 if level <= 3 else 30_000_000
+    free_atm = _scoped_fact(
+        "До 1 000 000 ₽ в месяц в банкоматах без комиссии"
+        + (
+            "; сверх бесплатного лимита — 2% от суммы превышения"
+            if level <= 3 else
+            "; выше 1 000 000 ₽ также без комиссии, в пределах операционных лимитов"
+        ),
+        _SBER_PREMIUM_TARIFF,
+        "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+        "Бесплатное снятие в банкоматах до 1 000 000 ₽ в месяц",
+        channel="банкомат",
+        free_limit="1 000 000 ₽",
+        technical_limit=f"{daily_limit:,} ₽ в сутки".replace(",", " "),
+        period="месяц",
+        over_limit_fee="2% от суммы превышения" if level <= 3 else "0%",
+        effective_date="2026-07-07",
+    )
+    return {
+        "internal_transfers": internal,
+        "interbank_transfers_remote": interbank_remote,
+        "interbank_transfers_office": interbank_office,
+        "legal_entity_payments": legal,
+        "atm_free_withdrawal": free_atm,
+        "cash_monthly_operational_limit": _scoped_fact(
+            f"{monthly_limit:,} ₽ в месяц через все каналы суммарно".replace(",", " "),
+            _SBER_PREMIUM_TARIFF,
+            "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+            f"Общий месячный лимит выдачи: {monthly_limit} ₽",
+            channel="все каналы суммарно",
+            technical_limit=f"{monthly_limit:,} ₽".replace(",", " "),
+            period="месяц",
+            effective_date="2026-07-07",
+        ),
+        "atm_daily_limit": _scoped_fact(
+            f"{daily_limit:,} ₽ в сутки".replace(",", " "),
+            _SBER_PREMIUM_TARIFF,
+            "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+            f"Суточный лимит в банкоматах: {daily_limit} ₽",
+            channel="банкомат",
+            technical_limit=f"{daily_limit:,} ₽".replace(",", " "),
+            period="сутки",
+            effective_date="2026-07-07",
+        ),
+        "cash_desk_daily_limit": _scoped_fact(
+            f"{daily_limit:,} ₽ в сутки".replace(",", " "),
+            _SBER_PREMIUM_TARIFF,
+            "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+            f"Суточный лимит через кассу: {daily_limit} ₽",
+            channel="касса",
+            technical_limit=f"{daily_limit:,} ₽".replace(",", " "),
+            period="сутки",
+            effective_date="2026-07-07",
+        ),
+        "cash_over_limit_fee": _scoped_fact(
+            "2% от суммы превышения бесплатного месячного лимита"
+            if level <= 3 else
+            "Комиссия сверх 1 000 000 ₽ не взимается; действуют операционные лимиты",
+            _SBER_PREMIUM_TARIFF,
+            "Тарифы премиального обслуживания СберБанка от 07.07.2026",
+            "Комиссия сверх бесплатного лимита",
+            channel="банкомат",
+            free_limit="1 000 000 ₽",
+            over_limit_fee="2%" if level <= 3 else "0%",
+            period="месяц",
+            effective_date="2026-07-07",
+        ),
+    }
+
+
+def _sber_insurance_facts(tier_id):
+    if tier_id in {"sber_premier_1", "sber_premier_2", "sber_premier_3"}:
+        source = _SBER_PREMIER_VZR
+        title = "Условия ВЗР СберПремьер"
+        return {
+            "insurance": _scoped_fact(
+                "ВЗР одной строкой: медицинская и медико-транспортная помощь — "
+                "30 000 евро в РФ и 100 000 евро за рубежом; владелец 18–75 лет, "
+                "члены семьи покрываются при сопровождении владельца; первые "
+                "90 дней каждой поездки, число поездок не ограничено; в РФ "
+                "исключена территория в пределах 100 км от места проживания; "
+                "багаж — 500 евро в РФ / 2 000 евро за рубежом; отмена или "
+                "досрочное возвращение — 1 500 евро в РФ / 3 000 евро за рубежом",
+                source, title,
+                "30 000 евро в РФ; 100 000 евро за рубежом; 90 дней; поездки не ограничены",
+            ),
+            "insurance_russia_coverage": _scoped_fact(
+                "30 000 евро — медицинская и медико-транспортная помощь в РФ",
+                source, title, "30 000 евро на территории РФ", region="РФ"),
+            "insurance_foreign_coverage": _scoped_fact(
+                "100 000 евро — медицинская и медико-транспортная помощь за пределами РФ",
+                source, title, "100 000 евро за пределами РФ", region="за пределами РФ"),
+            "insurance_covered_people": _scoped_fact(
+                "Владелец пакета 18–75 лет и сопровождающие его в поездке члены семьи",
+                source, title, "члены семьи при сопровождении владельца"),
+            "insurance_owner_accompaniment": _scoped_fact(
+                "Для покрытия членов семьи требуется сопровождение владельцем пакета",
+                source, title, "члены семьи сопровождают владельца"),
+            "insurance_trip_duration": _scoped_fact(
+                "Первые 90 дней каждой поездки", source, title, "первые 90 дней",
+                period="поездка"),
+            "insurance_trip_count": _scoped_fact(
+                "Количество поездок не ограничено", source, title,
+                "количество поездок не ограничено"),
+            "insurance_territorial_exclusions": _scoped_fact(
+                "В РФ не покрывается территория в пределах 100 км по автомобильным дорогам от места постоянного проживания",
+                source, title, "в пределах 100 км от места постоянного проживания",
+                region="РФ"),
+            "insurance_additional_risks": _scoped_fact(
+                "Багаж: 500 евро в РФ / 2 000 евро за рубежом; отмена или досрочное возвращение: 1 500 евро в РФ / 3 000 евро за рубежом",
+                source, title, "багаж и отмена/досрочное возвращение"),
+        }
+    if tier_id == "sber_first_4":
+        source = _SBER_FIRST_4_VZR
+        title = "Условия ВЗР СберПервый — уровень 4"
+        return {
+            "insurance": _scoped_fact(
+                "ВЗР одной строкой: медицинская и медико-транспортная помощь — "
+                "100 000 евро в РФ и 1 000 000 евро за рубежом; владелец и "
+                "члены семьи до 75 лет, семья покрывается и без владельца; "
+                "первые 90 дней каждой поездки, число поездок не ограничено; "
+                "в РФ исключена территория в пределах 100 км от места проживания; "
+                "багаж — 1 000 евро в РФ / 2 500 евро за рубежом; отмена или "
+                "досрочное возвращение — 6 000 евро; гражданская ответственность — "
+                "100 000 евро; юридическая помощь — 7 500 евро",
+                source, title,
+                "100 000 евро в РФ; 1 000 000 евро за рубежом; 90 дней; поездки не ограничены",
+            ),
+            "insurance_russia_coverage": _scoped_fact(
+                "100 000 евро — медицинская и медико-транспортная помощь в РФ",
+                source, title, "100 000 евро на территории РФ", region="РФ"),
+            "insurance_foreign_coverage": _scoped_fact(
+                "1 000 000 евро — медицинская и медико-транспортная помощь за пределами РФ",
+                source, title, "1 000 000 евро за пределами РФ", region="за пределами РФ"),
+            "insurance_covered_people": _scoped_fact(
+                "Владелец и члены семьи до 75 лет; члены семьи покрываются и без владельца",
+                source, title, "члены семьи до 75 лет, в том числе без владельца"),
+            "insurance_owner_accompaniment": _scoped_fact(
+                "Сопровождение владельцем не требуется", source, title,
+                "члены семьи путешествуют без владельца"),
+            "insurance_trip_duration": _scoped_fact(
+                "Первые 90 дней каждой поездки", source, title, "первые 90 дней",
+                period="поездка"),
+            "insurance_trip_count": _scoped_fact(
+                "Количество поездок не ограничено", source, title,
+                "количество поездок не ограничено"),
+            "insurance_territorial_exclusions": _scoped_fact(
+                "В РФ исключена территория в пределах 100 км от места проживания",
+                source, title, "в пределах 100 км от места проживания", region="РФ"),
+            "insurance_additional_risks": _scoped_fact(
+                "Багаж: 1 000 евро в РФ / 2 500 евро за рубежом; отмена или досрочное возвращение: 6 000 евро; гражданская ответственность: 100 000 евро; юридическая помощь: 7 500 евро",
+                source, title, "багаж, отмена, гражданская ответственность, юридическая помощь"),
+        }
+    return {}
+
+
+def _sber_option_and_service_facts(tier_id):
+    level = _SBER_TIER_NUMBERS[tier_id]
+    facts = {}
+    if level <= 3:
+        for field_id, title in (
+            ("health_option", "Здоровье"),
+            ("samokat_option", "Самокат"),
+            ("pets_option", "Питомцы"),
+            ("roadside_option", "Авто / помощь на дорогах"),
+        ):
+            value = f"Опция «{title}» — доступна на выбор"
+            facts[field_id] = _scoped_fact(
+                value, _SBER_PREMIER, "СберПремьер — опции привилегий",
+                value, channel="опция на выбор")
+        facts["personal_banking_support"] = _scoped_fact(
+            "Личный менеджер и выделенная линия премиальной поддержки 900",
+            _SBER_PREMIER, "СберПремьер", "личный менеджер; выделенная линия 900")
+    metal_value = (
+        "Премиальная СберКарта: доступен металлический носитель; стоимость выпуска на официальной странице не указана"
+        if level <= 5 else
+        "Лимитированная металлическая Премиальная СберКарта (чёрная или белая) для Sber Private Banking; стоимость на официальной странице не указана"
+    )
+    facts["metal_card"] = _scoped_fact(
+        metal_value, _SBER_CARD, "Премиальная СберКарта",
+        metal_value, channel="основная/дополнительная не уточнено")
+    return facts
 
 # Консьерж на СберПремьер отсутствует — общая запись для уровней 1–3
 _PREMIER_CONCIERGE = {
@@ -328,6 +686,17 @@ CURATED_FACTS = {
     },
 }
 
+for _sber_tier_id in _SBER_TIER_NUMBERS:
+    CURATED_FACTS[_sber_tier_id].update(
+        _sber_operation_facts(_sber_tier_id)
+    )
+    CURATED_FACTS[_sber_tier_id].update(
+        _sber_insurance_facts(_sber_tier_id)
+    )
+    CURATED_FACTS[_sber_tier_id].update(
+        _sber_option_and_service_facts(_sber_tier_id)
+    )
+
 
 # ============================================================================
 # КОНКУРЕНТЫ — целевое дозаполнение пустых полей (2026-07-02).
@@ -515,6 +884,16 @@ _VTB_RKO_TARIFF = (
     "https://www.vtb.ru/media-files/vtb.ru/sitepages/tarify/"
     "chastnim-licam/t_rko.xlsx"
 )
+_VTB_TRANSFERS = "https://www.vtb.ru/personal/online-servisy/perevody/"
+_VTB_CASH_QR = (
+    "https://www.vtb.ru/personal/online-servisy/snyatie-nalichnyh-po-qr/"
+)
+_VTB_PRIVATE_CARDS = "https://private.vtb.ru/bankovskie-uslugi/karty/"
+_VTB_PRIVATE_CASHBACK = "https://private.vtb.ru/bankovskie-uslugi/cashback/"
+_VTB_PRIME_OPERATIONS_TARIFF = (
+    "https://h.vtb.ru/projects/tbcv_dgto/files/prime_pictures/"
+    "vtb_tarif_prime.pdf"
+)
 _VTB_CHECKED = "2026-07-15"
 _VTB_UPDATE_CHECKED = "2026-07-28"
 
@@ -658,6 +1037,120 @@ _VTB_PRIVILEGE_TRANSFERS = _fact(
     "3.1.4.1.1 и 3.1.4.2.3",
     date_checked="2026-07-24")
 
+_VTB_PRIME_TRANSFERS = _fact(
+    "Переводы внутри ВТБ — до 1 млн ₽ в сутки, без ограничения в месяц. "
+    "Через СБП на счета третьих лиц — до 1 млн ₽ в сутки и до 10 млн ₽ "
+    "в месяц. По реквизитам в другие банки на счета третьих лиц — до "
+    "10 млн ₽ в сутки и до 10 млн ₽ в месяц. На собственные счета в "
+    "других банках — бесплатно до 30 млн ₽ в месяц",
+    _VTB_TRANSFERS,
+    "Официальная страница ВТБ прямо называет ПУ «Прайм+» для лимитов "
+    "СБП и переводов по реквизитам; лимиты действуют совокупно по всем "
+    "дебетовым картам клиента",
+    date_checked="2026-08-05")
+
+_VTB_PRIME_CASH_WITHDRAWAL = _fact(
+    "Снятие наличных по дебетовым картам Прайм+: до 1,2 млн ₽ в сутки "
+    "и до 37,2 млн ₽ в месяц совокупно по всем дебетовым картам. В "
+    "банкоматах ВТБ и банков группы — без комиссии; в банкоматах других "
+    "банков — 1%, минимум 300 ₽ / 6 $ / 6 €. Для снятия в банкомате ВТБ "
+    "по QR действует отдельный технический лимит 500 000 ₽ в сутки",
+    _VTB_PRIME_OPERATIONS_TARIFF,
+    "Официальный тариф для владельцев ПУ «Прайм+», раздел 8, пункты "
+    "8.1 и 8.3. Технический QR-лимит дополнительно подтверждён текущей "
+    f"страницей ВТБ {_VTB_CASH_QR}",
+    date_checked="2026-08-05")
+
+_VTB_PRIME_CASHBACK = _fact(
+    "Кешбэк рублями до 100 000 ₽ в месяц: 3 категории на выбор из 10, "
+    "ещё 1 категория — при получении зарплаты на карту ВТБ. Если категории "
+    "не выбраны, начисляется 1,5% на все покупки. Новым клиентам в первый "
+    "месяц — 2% на все покупки; кешбэк начисляется за каждые 100 ₽ и "
+    "зачисляется рублями на мастер-счёт до 20-го числа следующего месяца",
+    _VTB_PRIVATE_CASHBACK,
+    "Официальная страница ВТБ Private Banking для дебетовой карты пакета "
+    "Прайм+: лимит до 100 000 ₽ в месяц и правила выбора категорий. "
+    f"Связь карты с пакетом Прайм+ подтверждена карточным каталогом "
+    f"{_VTB_PRIVATE_CARDS}",
+    date_checked="2026-08-05")
+
+_VTB_PRIME_OPERATION_COMPONENTS = {
+    "internal_transfers": _scoped_fact(
+        "Переводы физическим лицам внутри ВТБ: до 1 млн ₽ в сутки; "
+        "месячный лимит не установлен",
+        _VTB_TRANSFERS,
+        "Официальные лимиты переводов ВТБ для ПУ «Прайм+»",
+        "Внутри ВТБ — до 1 млн ₽ в сутки, без ограничения в месяц",
+        recipient="физическое лицо — клиент ВТБ",
+        channel="ВТБ Онлайн",
+        technical_limit="1 000 000 ₽ в сутки",
+        period="сутки",
+        date_checked="2026-08-05",
+    ),
+    "sbp_transfers": _scoped_fact(
+        "Переводы через СБП на счета третьих лиц: до 1 млн ₽ в сутки "
+        "и до 10 млн ₽ в месяц",
+        _VTB_TRANSFERS,
+        "Официальные лимиты переводов ВТБ для ПУ «Прайм+»",
+        "Прайм+: 1 млн ₽ в сутки и 10 млн ₽ в месяц через СБП",
+        recipient="третье лицо",
+        channel="СБП",
+        free_limit="10 000 000 ₽",
+        technical_limit="1 000 000 ₽ в сутки",
+        period="месяц",
+        over_limit_fee="не опубликована",
+        date_checked="2026-08-05",
+    ),
+    "interbank_transfers_remote": _scoped_fact(
+        "Переводы по реквизитам в другие банки на счета третьих лиц: "
+        "до 10 млн ₽ в сутки и до 10 млн ₽ в месяц",
+        _VTB_TRANSFERS,
+        "Официальные лимиты переводов ВТБ для ПУ «Прайм+»",
+        "Прайм+: 10 млн ₽ в сутки и 10 млн ₽ в месяц по реквизитам",
+        recipient="третье лицо в другом банке",
+        channel="ВТБ Онлайн, перевод по реквизитам",
+        free_limit="10 000 000 ₽",
+        technical_limit="10 000 000 ₽ в сутки",
+        period="месяц",
+        date_checked="2026-08-05",
+    ),
+    "atm_free_withdrawal": _scoped_fact(
+        "Снятие наличных в банкоматах ВТБ и банков группы — без комиссии "
+        "в пределах операционных лимитов",
+        _VTB_PRIME_OPERATIONS_TARIFF,
+        "Тариф для владельцев ПУ «Прайм+»",
+        "Раздел 8, п. 8.1: выдача наличных в ВТБ и банках группы без комиссии",
+        channel="банкоматы ВТБ и банков группы",
+        free_limit="без опубликованного отдельного комиссионного лимита",
+        technical_limit="1 200 000 ₽ в сутки; 37 200 000 ₽ в месяц",
+        date_checked="2026-08-05",
+    ),
+    "cash_monthly_operational_limit": _scoped_fact(
+        "До 37,2 млн ₽ в месяц совокупно по всем дебетовым картам Прайм+",
+        _VTB_PRIME_OPERATIONS_TARIFF,
+        "Тариф для владельцев ПУ «Прайм+»",
+        "Раздел 8, п. 8.3: 37 200 000 ₽ в месяц",
+        channel="выдача наличных по дебетовым картам",
+        technical_limit="37 200 000 ₽",
+        period="месяц",
+        date_checked="2026-08-05",
+    ),
+    "atm_daily_limit": _scoped_fact(
+        "До 1,2 млн ₽ в сутки совокупно по всем дебетовым картам Прайм+",
+        _VTB_PRIME_OPERATIONS_TARIFF,
+        "Тариф для владельцев ПУ «Прайм+»",
+        "Раздел 8, п. 8.3: 1 200 000 ₽ в сутки",
+        channel="банкоматы, дебетовые карты",
+        technical_limit="1 200 000 ₽",
+        period="сутки",
+        note=(
+            "Для снятия по QR действует отдельный технический лимит "
+            f"500 000 ₽ в сутки: {_VTB_CASH_QR}"
+        ),
+        date_checked="2026-08-05",
+    ),
+}
+
 _VTB_PRIVILEGE_SHARED = {
     "concierge": _fact(
         "Есть — круглосуточный консьерж-сервис, бесплатно для всех клиентов "
@@ -692,6 +1185,15 @@ _VTB_PRIME_CONCIERGE = _fact(
     "привилегий; официальный сайт ВТБ описывает консьерж-сервис как помощь "
     "24/7",
     date_checked="2026-07-24")
+
+
+def _vtb_prime_roadside(pbi_url: str) -> dict:
+    return _fact(
+        "Помощь на дорогах — консультации, подвоз топлива, эвакуатор",
+        pbi_url,
+        "Услуга опубликована для конкретного уровня Прайм+ в блоке "
+        "«Другие привилегии» и нормализована в отдельное поле «Авто»",
+        date_checked="2026-08-05")
 
 # ---------- Озон Банк (Ultra) ----------
 _OZON_PRODUCTS = "https://finance.ozon.ru/products"
@@ -899,6 +1401,10 @@ _ALFA_ONLY_CARD_TARIFFS = (
     "https://alfabank.servicecdn.ru/site-upload/c1/65/275/"
     "Tariffs_Alfa_Only_Card.pdf"
 )
+_ALFA_RETAIL_TARIFFS = (
+    "https://alfabank.servicecdn.ru/site-upload/58/51/1869/"
+    "all_tariffs_1082026.pdf"
+)
 _ALFA_CASH_LIMITS_OFFICIAL = (
     "https://alfabank.ru/help/articles/debit-cards/"
     "kak-snimat-dengi-s-karty-v-bankomate/"
@@ -959,6 +1465,210 @@ _ALFA_ONLY_CASH_WITHDRAWAL = _fact(
     "для карт и счетов и может быть изменён банком; актуальное значение "
     "показывается в приложении",
     date_checked="2026-07-27")
+
+_ALFA_ONLY_OPERATION_FACTS = {
+    "internal_transfers": _scoped_fact(
+        "Через приложение Альфа-Банка или Альфа-Онлайн перевод клиенту "
+        "Альфа-Банка, в том числе юридическому лицу, — бесплатно",
+        _ALFA_ONLY_CARD_TARIFFS,
+        "Карта Alfa Only — тарифы",
+        "6.2. Перевод клиенту банка, в том числе, юридическому лицу — Бесплатно",
+        channel="Альфа-Мобайл / Альфа-Онлайн",
+        free_limit="без опубликованного лимита",
+        period="не указан",
+        pdf_page="1",
+        date_checked="2026-08-05",
+    ),
+    "interbank_transfers_remote": _scoped_fact(
+        "Через приложение или Альфа-Онлайн перевод в другой банк по "
+        "реквизитам счёта в рублях и иностранной валюте — бесплатно",
+        _ALFA_ONLY_CARD_TARIFFS,
+        "Карта Alfa Only — тарифы",
+        "6.5–6.6. Перевод в другой банк по реквизитам счёта — Бесплатно",
+        channel="Альфа-Мобайл / Альфа-Онлайн",
+        free_limit="без опубликованного лимита",
+        period="не указан",
+        pdf_page="1",
+        date_checked="2026-08-05",
+    ),
+    "card_to_card_transfers": _scoped_fact(
+        "Перевод на карту другого банка по номеру карты — бесплатно до "
+        "100 000 ₽ в месяц; сверх лимита при остатках до 12 млн ₽ — 1,95%, "
+        "минимум 49 ₽; при остатках от 12 млн ₽ — без комиссии и ограничений",
+        _ALFA_ONLY_CARD_TARIFFS,
+        "Карта Alfa Only — тарифы",
+        "6.4. Бесплатно до 100 000 ₽ в месяц; сверх — 1,95% мин. 49 ₽; "
+        "от 12 млн ₽ без комиссии и ограничений",
+        channel="Альфа-Мобайл / Альфа-Онлайн",
+        free_limit="100 000 ₽ в месяц; без ограничений при остатках от 12 млн ₽",
+        period="месяц",
+        over_limit_fee="1,95%, минимум 49 ₽ при остатках до 12 млн ₽",
+        pdf_page="1",
+        date_checked="2026-08-05",
+    ),
+    "sbp_transfers": _scoped_fact(
+        "Перевод в рублях в другой банк по номеру телефона через приложение "
+        "или Альфа-Онлайн — бесплатно; отдельный лимит в описании карты не указан",
+        _ALFA_ONLY_CARD_TARIFFS,
+        "Карта Alfa Only — тарифы",
+        "6.7. Перевод в рублях в другой банк по номеру телефона — Бесплатно",
+        channel="Альфа-Мобайл / Альфа-Онлайн",
+        free_limit="без опубликованного лимита",
+        period="не указан",
+        pdf_page="1",
+        date_checked="2026-08-05",
+    ),
+    "legal_entity_payments": _scoped_fact(
+        "Перевод клиенту Альфа-Банка, включая юридическое лицо, а также "
+        "оплата коммунальных услуг, мобильной связи и штрафов ГИБДД — бесплатно",
+        _ALFA_ONLY_CARD_TARIFFS,
+        "Карта Alfa Only — тарифы",
+        "6.2–6.3. Перевод юридическому лицу и платежи — Бесплатно",
+        channel="Альфа-Мобайл / Альфа-Онлайн",
+        free_limit="без опубликованного лимита",
+        period="не указан",
+        pdf_page="1",
+        date_checked="2026-08-05",
+    ),
+    "atm_free_withdrawal": _scoped_fact(
+        "Снятие наличных в банкоматах Альфа-Банка, банков-партнёров и "
+        "других банков по миру — бесплатно",
+        f"{_ALFA_CASH_LIMITS_OFFICIAL}; {_ALFA_ONLY_CARD_TARIFFS}",
+        "Карта Alfa Only — тарифы и справка о снятии",
+        "С премиальным платёжным средством снятие наличных бесплатное в любых банкоматах",
+        channel="банкоматы Альфа-Банка и сторонних банков",
+        free_limit="в пределах технических лимитов карты",
+        period="сутки / месяц",
+        pdf_page="1",
+        date_checked="2026-08-05",
+    ),
+    "cash_monthly_operational_limit": _scoped_fact(
+        "Максимум 3 000 000 ₽ в месяц по премиальным картам Alfa Only",
+        _ALFA_CASH_LIMITS_OFFICIAL,
+        "Как снимать деньги с карты в банкомате",
+        "С премиальных карт ... в месяц — 3 млн ₽",
+        channel="банкоматы",
+        technical_limit="3 000 000 ₽",
+        period="месяц",
+        date_checked="2026-08-05",
+    ),
+    "atm_daily_limit": _scoped_fact(
+        "Максимум 1 500 000 ₽ в сутки по премиальным картам Alfa Only",
+        _ALFA_CASH_LIMITS_OFFICIAL,
+        "Как снимать деньги с карты в банкомате",
+        "С премиальных карт максимальная сумма снятия в сутки составляет 1,5 млн ₽",
+        channel="банкоматы",
+        technical_limit="1 500 000 ₽",
+        period="сутки",
+        date_checked="2026-08-05",
+    ),
+}
+
+_ALFA_ACLUB_OPERATION_FACTS = {
+    "transfers_payments": _scoped_fact(
+        "A-Club: в стоимость пакета включены внутрибанковские переводы, "
+        "рублёвые переводы через приложение и отделение, переводы в иностранной "
+        "валюте через отделение и Альфа-Мобайл; СБП физлицам бесплатно до "
+        "100 000 ₽ в месяц; платежи по СБП юридическим лицам и ИП — бесплатно",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "В стоимость Пакета услуг «А-Клуб» включены стоимости переводов; "
+        "не установлена плата за переводы, перечисленные на стр. 117–118",
+        pdf_page="116–118",
+        date_checked="2026-08-05",
+    ),
+    "internal_transfers": _scoped_fact(
+        "Внутрибанковские переводы физическим и юридическим лицам на счета "
+        "Альфа-Банка включены в стоимость пакета A-Club",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "внутрибанковского перевода ... в пользу физических и юридических лиц",
+        channel="Альфа-Мобайл / Альфа-Клик / отделение",
+        free_limit="без опубликованного лимита",
+        period="не указан",
+        pdf_page="117",
+        date_checked="2026-08-05",
+    ),
+    "interbank_transfers_remote": _scoped_fact(
+        "Переводы в рублях через Альфа-Мобайл/Альфа-Клик и переводы в "
+        "иностранной валюте через Альфа-Мобайл на основании проекта в чате "
+        "включены в стоимость A-Club; трансграничные рублёвые переводы исключены",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "переводов ... в валюте РФ ... через Интернет Банк / Альфа-Мобайл; "
+        "переводов в иностранной валюте ... посредством Альфа-Мобайл",
+        channel="Альфа-Мобайл / Альфа-Клик",
+        free_limit="без опубликованного лимита; кроме трансграничных переводов в рублях",
+        period="не указан",
+        pdf_page="117",
+        date_checked="2026-08-05",
+    ),
+    "interbank_transfers_office": _scoped_fact(
+        "Переводы в рублях и иностранной валюте по поручению через отделение "
+        "включены в стоимость пакета A-Club",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "переводов по поручениям ... в валюте РФ / иностранной валюте, "
+        "поданным через Отделение",
+        channel="отделение",
+        free_limit="без опубликованного лимита",
+        period="не указан",
+        pdf_page="117",
+        date_checked="2026-08-05",
+    ),
+    "sbp_transfers": _scoped_fact(
+        "Переводы через СБП на счета физлиц в Альфа-Банке и других банках — "
+        "бесплатно до 100 000 ₽ за календарный месяц; трансграничные переводы "
+        "в рублях не входят",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "не установлена плата ... если общая сумма переводов не превышает "
+        "100 000 рублей за календарный месяц",
+        channel="Альфа-Мобайл / Альфа-Клик",
+        free_limit="100 000 ₽",
+        period="месяц",
+        pdf_page="117–118",
+        date_checked="2026-08-05",
+    ),
+    "legal_entity_payments": _scoped_fact(
+        "Платежи по СБП в пользу юридических лиц и ИП, а также оплата товаров, "
+        "работ и услуг по QR-коду/платёжной ссылке — бесплатно",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "не установлена плата ... в пользу юридических лиц и индивидуальных предпринимателей",
+        channel="СБПэй / Альфа-Мобайл / Альфа-Клик",
+        free_limit="без опубликованного лимита",
+        period="не указан",
+        pdf_page="118",
+        date_checked="2026-08-05",
+    ),
+    "cash_withdrawal": _scoped_fact(
+        "A-Club: снятие без конвертации в банкоматах и кассах Альфа-Банка, "
+        "сторонних банкоматах и пунктах выдачи наличных — бесплатно; выдача "
+        "наличных в отделении включена в пакет. При снятии с конвертацией в "
+        "банкомате Альфа-Банка комиссия 1,5%",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "Для A-Club не установлены стоимости выдачи наличных без конвертации; "
+        "с конвертацией — 1,5%",
+        pdf_page="116, 118, 147",
+        date_checked="2026-08-05",
+    ),
+    "atm_free_withdrawal": _scoped_fact(
+        "Снятие без конвертации через банкоматы Альфа-Банка и сторонних банков, "
+        "а также пункты выдачи наличных — бесплатно; опубликованный числовой "
+        "лимит для A-Club в тарифе не указан",
+        _ALFA_RETAIL_TARIFFS,
+        "Тарифы Альфа-Банка по Договору КБО, редакция от 01.08.2026",
+        "Для A-Club не установлены стоимости выдачи наличных ... через банкомат "
+        "или пункт выдачи наличных стороннего банка",
+        channel="банкоматы Альфа-Банка и сторонних банков / ПВН",
+        free_limit="без опубликованного числового лимита",
+        period="не указан",
+        pdf_page="118",
+        date_checked="2026-08-05",
+    ),
+}
 
 _ALFA_ONLY_SUPREME = _fact(
     "Дебетовая Альфа-Карта МИР Supreme доступна клиентам Alfa Only",
@@ -1237,33 +1947,45 @@ _COMPETITOR_FACTS = {
                         "service_cost": _free_on_conditions(
                             "https://premiumbanking.info/vtb/4")},
     "vtb_prime_5": {
+        **_VTB_PRIME_OPERATION_COMPONENTS,
         "concierge": _VTB_PRIME_CONCIERGE,
-        "cashback": _VTB_CASHBACK,
+        "auto": _vtb_prime_roadside("https://premiumbanking.info/vtb/5"),
+        "cashback": _VTB_PRIME_CASHBACK,
         "deposits": _VTB_DEPOSITS,
-        "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
+        "transfers_payments": _VTB_PRIME_TRANSFERS,
+        "cash_withdrawal": _VTB_PRIME_CASH_WITHDRAWAL,
         "supreme": _VTB_PRIVILEGE_SHARED["supreme"],
     },
     "vtb_prime_6": {
+        **_VTB_PRIME_OPERATION_COMPONENTS,
         "concierge": _VTB_PRIME_CONCIERGE,
-        "cashback": _VTB_CASHBACK,
+        "auto": _vtb_prime_roadside("https://premiumbanking.info/vtb/6"),
+        "cashback": _VTB_PRIME_CASHBACK,
         "deposits": _VTB_DEPOSITS,
-        "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
+        "transfers_payments": _VTB_PRIME_TRANSFERS,
+        "cash_withdrawal": _VTB_PRIME_CASH_WITHDRAWAL,
         "supreme": _VTB_PRIVILEGE_SHARED["supreme"],
         "service_cost": _free_on_conditions("https://premiumbanking.info/vtb/6"),
     },
     "vtb_prime_7": {
+        **_VTB_PRIME_OPERATION_COMPONENTS,
         "concierge": _VTB_PRIME_CONCIERGE,
-        "cashback": _VTB_CASHBACK,
+        "auto": _vtb_prime_roadside("https://premiumbanking.info/vtb/7"),
+        "cashback": _VTB_PRIME_CASHBACK,
         "deposits": _VTB_DEPOSITS,
-        "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
+        "transfers_payments": _VTB_PRIME_TRANSFERS,
+        "cash_withdrawal": _VTB_PRIME_CASH_WITHDRAWAL,
         "supreme": _VTB_PRIVILEGE_SHARED["supreme"],
         "service_cost": _free_on_conditions("https://premiumbanking.info/vtb/7"),
     },
     "vtb_prime_8": {
+        **_VTB_PRIME_OPERATION_COMPONENTS,
         "concierge": _VTB_PRIME_CONCIERGE,
-        "cashback": _VTB_CASHBACK,
+        "auto": _vtb_prime_roadside("https://premiumbanking.info/vtb/8"),
+        "cashback": _VTB_PRIME_CASHBACK,
         "deposits": _VTB_DEPOSITS,
-        "cash_withdrawal": _VTB_PRIVILEGE_SHARED["cash_withdrawal"],
+        "transfers_payments": _VTB_PRIME_TRANSFERS,
+        "cash_withdrawal": _VTB_PRIME_CASH_WITHDRAWAL,
         "supreme": _VTB_PRIVILEGE_SHARED["supreme"],
         "service_cost": _free_on_conditions("https://premiumbanking.info/vtb/8"),
     },
@@ -1325,7 +2047,8 @@ _COMPETITOR_FACTS = {
         "supreme": _GPB_PRIVATE_PRIME,
     },
     # ----- Альфа-Банк -----
-    "alfa_only_1": {"entry_conditions": _ALFA_ONLY_1_ENTRY,
+    "alfa_only_1": {**_ALFA_ONLY_OPERATION_FACTS,
+                    "entry_conditions": _ALFA_ONLY_1_ENTRY,
                     "addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
                     "ecosystem": _ALFA_ONLY_SIMPLE_PRIVE,
@@ -1335,7 +2058,8 @@ _COMPETITOR_FACTS = {
                     "cash_withdrawal": _ALFA_ONLY_CASH_WITHDRAWAL,
                     "supreme": _ALFA_ONLY_SUPREME,
                     "deposits": _ALFA_ONLY_DEPOSITS},
-    "alfa_only_2": {"addons": _ALFA_ADDONS_ABSENT,
+    "alfa_only_2": {**_ALFA_ONLY_OPERATION_FACTS,
+                    "addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
                     "ecosystem": _alfa_only_ecosystem(2),
                     "cashback": _ALFA_ONLY_CASHBACK,
@@ -1346,7 +2070,8 @@ _COMPETITOR_FACTS = {
                     "deposits": _ALFA_ONLY_DEPOSITS,
                     "service_cost": _free_on_conditions(
                         "https://premiumbanking.info/alfabank/2")},
-    "alfa_only_3": {"addons": _ALFA_ADDONS_ABSENT,
+    "alfa_only_3": {**_ALFA_ONLY_OPERATION_FACTS,
+                    "addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
                     "ecosystem": _alfa_only_ecosystem(3, include_rbc=True),
                     "cashback": _ALFA_ONLY_CASHBACK,
@@ -1357,7 +2082,8 @@ _COMPETITOR_FACTS = {
                     "deposits": _ALFA_ONLY_DEPOSITS,
                     "service_cost": _free_on_conditions(
                         "https://premiumbanking.info/alfabank/3")},
-    "alfa_only_4": {"addons": _ALFA_ADDONS_ABSENT,
+    "alfa_only_4": {**_ALFA_ONLY_OPERATION_FACTS,
+                    "addons": _ALFA_ADDONS_ABSENT,
                     "concierge": _ALFA_CONCIERGE_FACT,
                     "ecosystem": _alfa_only_ecosystem(4, include_rbc=True),
                     "cashback": _ALFA_ONLY_CASHBACK,
@@ -1369,6 +2095,7 @@ _COMPETITOR_FACTS = {
                     "service_cost": _free_on_conditions(
                         "https://premiumbanking.info/alfabank/4")},
     "alfa_aclub": {
+        **_ALFA_ACLUB_OPERATION_FACTS,
         "entry_conditions": _fact(
             "30 млн ₽ на счетах",
             _ALFA_ACLUB_OFFICIAL,
@@ -1896,6 +2623,66 @@ CURATED_FACTS.update(_DIGITAL_REVOLUT)
 CURATED_FACTS.update(_DIGITAL_N26)
 CURATED_FACTS.update(_DIGITAL_WISE)
 CURATED_FACTS.update(_DIGITAL_MONZO)
+
+# Official analogs that are explicitly published for every named tier below.
+# Absence from this block means "not confirmed", never a negative fact.
+for _vtb_tier_id in (
+    "vtb_privilege_1", "vtb_privilege_2",
+    "vtb_privilege_3", "vtb_privilege_4",
+):
+    CURATED_FACTS[_vtb_tier_id]["sbp_transfers"] = _scoped_fact(
+        _VTB_PRIVILEGE_TRANSFERS["value"],
+        _VTB_SBP,
+        "Переводы через СБП — ВТБ Привилегия",
+        _VTB_PRIVILEGE_TRANSFERS["value"],
+        recipient="третье лицо / собственный счёт в другом банке",
+        channel="СБП",
+        free_limit="10 000 000 ₽ третьим лицам / 30 000 000 ₽ себе",
+        technical_limit="1 000 000 ₽ за операцию и в сутки третьим лицам",
+        period="месяц",
+        date_checked="2026-07-24",
+    )
+    CURATED_FACTS[_vtb_tier_id]["roadside_option"] = _scoped_fact(
+        _VTB_PRIVILEGE_SHARED["auto"]["value"],
+        _VTB_SERVICES,
+        "Премиальные сервисы ВТБ",
+        _VTB_PRIVILEGE_SHARED["auto"]["value"],
+        channel="включённый сервис",
+        date_checked="2026-07-15",
+    )
+    CURATED_FACTS[_vtb_tier_id]["atm_daily_limit"] = _scoped_fact(
+        "350 000 ₽ в сутки в банкоматах ВТБ и партнёров группы",
+        _VTB_CARD,
+        "Карта ВТБ «Привилегия Mir Supreme»",
+        "до 350 000 ₽ в день",
+        channel="банкоматы ВТБ и партнёров группы",
+        technical_limit="350 000 ₽",
+        period="сутки",
+        date_checked="2026-07-15",
+    )
+    CURATED_FACTS[_vtb_tier_id]["cash_monthly_operational_limit"] = _scoped_fact(
+        "2 000 000 ₽ в месяц в банкоматах ВТБ и партнёров группы",
+        _VTB_CARD,
+        "Карта ВТБ «Привилегия Mir Supreme»",
+        "до 2 000 000 ₽ в месяц",
+        channel="банкоматы ВТБ и партнёров группы",
+        technical_limit="2 000 000 ₽",
+        period="месяц",
+        date_checked="2026-07-15",
+    )
+
+_ALFA_ONLY_METAL_SOURCE = "https://t.me/aaa_only/1434"
+for _alfa_tier_id in (
+    "alfa_only_1", "alfa_only_2", "alfa_only_3", "alfa_only_4",
+):
+    CURATED_FACTS[_alfa_tier_id]["metal_card"] = _scoped_fact(
+        "Металлическая карта Alfa Only доступна бесплатно всем клиентам Alfa Only независимо от суммы на счетах",
+        _ALFA_ONLY_METAL_SOURCE,
+        "Официальный канал Alfa Only — металлическая карта",
+        "Металлическая карта доступна всем клиентам Alfa Only — бесплатно и независимо от суммы на счетах",
+        channel="основная/дополнительная карта не уточнена",
+        date_checked="2026-07-30",
+    )
 
 
 def curated_for(tier_id: str) -> dict:

@@ -170,7 +170,7 @@ BANK_FIELDS = {
         "keywords": ["ресторан", "кафе", "чек", "вылет", "прилёт", "прилет"],
     },
     "auto": {
-        "label": "Автоуслуги",
+        "label": "Авто / помощь на дорогах",
         "keywords": ["авто", "каршеринг", "парковк", "водитель",
                      "помощь на дорог"],
     },
@@ -219,6 +219,117 @@ BANK_FIELDS = {
     },
 }
 
+# Scope-safe fields used by the comparison landing.  They intentionally keep
+# unlike operations in different keys so a monthly fee-free allowance can
+# never be ranked against a daily technical limit or an office tariff.
+BANK_FIELDS.update({
+    "internal_transfers": {
+        "label": "Переводы физлицам внутри банка",
+        "keywords": ["внутри банка", "клиентам банка", "другому физическому лицу"],
+    },
+    "interbank_transfers_remote": {
+        "label": "Межбанковские переводы — приложение / удалённый канал",
+        "keywords": ["межбанковский перевод", "удаленный канал", "уко"],
+    },
+    "interbank_transfers_office": {
+        "label": "Межбанковские переводы — офис",
+        "keywords": ["межбанковский перевод", "офис", "окр"],
+    },
+    "card_to_card_transfers": {
+        "label": "Переводы по номеру карты",
+        "keywords": ["по номеру карты", "с карты на карту"],
+    },
+    "sbp_transfers": {
+        "label": "Переводы через СБП",
+        "keywords": ["сбп", "система быстрых платежей"],
+    },
+    "legal_entity_payments": {
+        "label": "Платежи / переводы юридическим лицам",
+        "keywords": ["юридическим лицам", "платежи юрлицам"],
+    },
+    "atm_free_withdrawal": {
+        "label": "Бесплатное снятие в банкоматах",
+        "keywords": ["снятие без комиссии", "банкомат"],
+    },
+    "cash_monthly_operational_limit": {
+        "label": "Общий месячный лимит выдачи наличных",
+        "keywords": ["общий месячный лимит", "выдача наличных"],
+    },
+    "atm_daily_limit": {
+        "label": "Суточный лимит в банкоматах",
+        "keywords": ["суточный лимит", "банкомат"],
+    },
+    "cash_desk_daily_limit": {
+        "label": "Суточный лимит через кассу",
+        "keywords": ["суточный лимит", "касса"],
+    },
+    "cash_over_limit_fee": {
+        "label": "Комиссия сверх бесплатного лимита снятия",
+        "keywords": ["комиссия", "сверх лимита", "сумма превышения"],
+    },
+    "insurance_russia_coverage": {
+        "label": "ВЗР — покрытие в РФ",
+        "keywords": ["территории российской федерации", "на территории рф"],
+    },
+    "insurance_foreign_coverage": {
+        "label": "ВЗР — покрытие за рубежом",
+        "keywords": ["за пределами российской федерации", "за рубежом"],
+    },
+    "insurance_covered_people": {
+        "label": "ВЗР — кого покрывает страховка",
+        "keywords": ["члены семьи", "застрахованные лица"],
+    },
+    "insurance_owner_accompaniment": {
+        "label": "ВЗР — сопровождение владельцем",
+        "keywords": ["сопровождают владельца", "без владельца"],
+    },
+    "insurance_trip_duration": {
+        "label": "ВЗР — максимальная длительность поездки",
+        "keywords": ["90 дней", "срок поездки"],
+    },
+    "insurance_trip_count": {
+        "label": "ВЗР — количество поездок",
+        "keywords": ["количество поездок", "не ограничено"],
+    },
+    "insurance_territorial_exclusions": {
+        "label": "ВЗР — территориальные исключения",
+        "keywords": ["100 км", "места постоянного проживания"],
+    },
+    "insurance_additional_risks": {
+        "label": "ВЗР — дополнительные риски",
+        "keywords": ["багаж", "отмена поездки", "гражданская ответственность"],
+    },
+    "health_option": {
+        "label": "Здоровье",
+        "keywords": ["опция здоровье", "телемедицина", "анализы"],
+    },
+    "samokat_option": {
+        "label": "Самокат",
+        "keywords": ["самокат"],
+    },
+    "pets_option": {
+        "label": "Питомцы",
+        "keywords": ["питомцы", "ветеринар"],
+    },
+    "sport_beauty_option": {
+        "label": "Спорт и красота",
+        "keywords": ["спорт и красота", "фитмост", "appoint"],
+    },
+    "roadside_option": {
+        "label": "Авто / помощь на дорогах",
+        "keywords": ["помощь на дорогах", "опция авто"],
+    },
+    "metal_card": {
+        "label": "Металлическая карта",
+        "keywords": ["металлическая карта", "металлический носитель"],
+    },
+    "personal_banking_support": {
+        "label": "Персональное банковское сопровождение",
+        "keywords": ["персональный менеджер", "личный менеджер",
+                     "инвестиционный консультант", "премиальная линия"],
+    },
+})
+
 # Поля для экосистемных подписок (lifestyle-конкуренты)
 LIFESTYLE_FIELDS = {
     "price": {
@@ -265,7 +376,15 @@ _SBER_PREMIUM_VKLAD = "https://www.sberbank.ru/ru/person/premium/premium_vklad"
 _SBER_FIRST_VKLADY = "https://www.sberbank.ru/ru/person/sb1/vklad/vse_vklady"
 # Тарифы Премиальной СберКарты — первоисточник карточных лимитов всех уровней
 _SBER_CARD_OFFICIAL = "https://www.sberbank.ru/ru/person/bank_cards/debit/sberkarta_premium"
-_SBER_PREMIUM_TARIFF_PDF = "https://www.sberbank.ru/common/img/uploaded/files/pdf/tarif_premobsl_06032026.pdf"
+_SBER_PREMIUM_TARIFF_PDF = "https://www.sberbank.ru/common/img/uploaded/files/pdf/tarif_premobsl_07072026.pdf"
+_SBER_PREMIER_TRAVEL_INSURANCE_PDF = (
+    "https://www.sberbank.ru/common/img/uploaded/pdf/"
+    "usloviya_vzr_newpremier_2025.pdf"
+)
+_SBER_FIRST_4_TRAVEL_INSURANCE_PDF = (
+    "https://www.sberbank.ru/common/img/uploaded/files/sb1/"
+    "usloviya_vzr_premobsl_4.pdf"
+)
 _SBER_PRIVATE_TARIFF_PDF = "https://www.sberbank.ru/common/img/uploaded/redirected/private/assets/tariff_sb_pb.pdf"
 _TBANK_PREMIUM_TARIFF_PDF = "https://cdn.tbank.ru/static/documents/docs-terms-of-service-premium.pdf"
 _TBANK_PRIVATE_TARIFF_PDF = "https://cdn.tbank.ru/static/documents/docs-terms-of-service-private.pdf"
@@ -289,6 +408,21 @@ _VTB_PRIVILEGE_UPDATE_2026 = "https://www.vtb.ru/promo/rsvtb-pv-2/"
 _VTB_PRIME_PLUS_OFFICIAL = "https://www.vtb.ru/privilegia/paket-prime/"
 _VTB_PRIVILEGE_CARD = "https://www.vtb.ru/privilegia/karty/debetovye/privilegiya-mir-supreme/"
 _VTB_SBP_OFFICIAL = "https://www.vtb.ru/personal/online-servisy/perevody-sbp/"
+_VTB_RETAIL_TARIFFS_OFFICIAL = "https://www.vtb.ru/tarify/chastnim-licam/"
+_VTB_TRANSFERS_OFFICIAL = (
+    "https://www.vtb.ru/personal/online-servisy/perevody/"
+)
+_VTB_CASH_QR_OFFICIAL = (
+    "https://www.vtb.ru/personal/online-servisy/snyatie-nalichnyh-po-qr/"
+)
+_VTB_PRIVATE_CARDS_OFFICIAL = "https://private.vtb.ru/bankovskie-uslugi/karty/"
+_VTB_PRIVATE_CASHBACK_OFFICIAL = (
+    "https://private.vtb.ru/bankovskie-uslugi/cashback/"
+)
+_VTB_PRIME_OPERATIONS_TARIFF_PDF = (
+    "https://h.vtb.ru/projects/tbcv_dgto/files/prime_pictures/"
+    "vtb_tarif_prime.pdf"
+)
 _RAIF_PACKAGE_TARIFF_PDF = "https://www.raiffeisen.ru/common/img/uploaded/files/retail/package/tariffs_pakety_uslug.pdf"
 _RAIF_PREMIUM_OFFICIAL = "https://www.raiffeisen.ru/premium/"
 _GPB_PREMIUM_TARIFF_PDF = (
@@ -331,12 +465,18 @@ _ALFA_ONLY_SALARY_OFFICIAL = (
     "https://alfabank.ru/everyday/debit-cards/premium/zarplatnaya-karta/"
 )
 _ALFA_ACLUB_OFFICIAL = "https://alfabank.ru/a-club/"
+_ALFA_RETAIL_TARIFFS = (
+    "https://alfabank.servicecdn.ru/site-upload/58/51/1869/"
+    "all_tariffs_1082026.pdf"
+)
 _INGO_PREMIUM_OFFICIAL = "https://ingobank.ru/premium/"
 _INGO_PREMIUM_TARIFF_PDF = "https://cdn.ingos.ru/docs/cards/Tarif_7.pdf"
 
 PRIORITY_SOURCE_URLS = {
     "official": {
         "sber_premium": _SBER_PREMIUM_TARIFF_PDF,
+        "sber_premier_travel_insurance": _SBER_PREMIER_TRAVEL_INSURANCE_PDF,
+        "sber_first_4_travel_insurance": _SBER_FIRST_4_TRAVEL_INSURANCE_PDF,
         "sber_private": _SBER_PRIVATE_TARIFF_PDF,
         "tbank_premium": _TBANK_PREMIUM_TARIFF_PDF,
         "tbank_private": _TBANK_PRIVATE_TARIFF_PDF,
@@ -344,10 +484,12 @@ PRIORITY_SOURCE_URLS = {
         "vtb_privilege": _VTB_PRIVILEGE_TARIFF_PDF,
         "vtb_rko": _VTB_RKO_TARIFF_XLSX,
         "vtb_prime_plus": _VTB_PRIME_PLUS_TARIFF_PDF,
+        "vtb_prime_operations": _VTB_PRIME_OPERATIONS_TARIFF_PDF,
         "raiffeisen": _RAIF_PACKAGE_TARIFF_PDF,
         "gazprombank": _GPB_PREMIUM_TARIFF_PDF,
         "alfa_only": _ALFA_ONLY_CARD_TARIFFS,
         "alfa_aclub": _ALFA_ACLUB_OFFICIAL,
+        "alfa_retail_tariffs": _ALFA_RETAIL_TARIFFS,
         "ingo_premium": _INGO_PREMIUM_TARIFF_PDF,
     },
     "official_landing": {
@@ -364,6 +506,11 @@ PRIORITY_SOURCE_URLS = {
         "vtb_privilege_update_2026": _VTB_PRIVILEGE_UPDATE_2026,
         "vtb_sbp": _VTB_SBP_OFFICIAL,
         "vtb_prime_plus": _VTB_PRIME_PLUS_OFFICIAL,
+        "vtb_retail_tariffs": _VTB_RETAIL_TARIFFS_OFFICIAL,
+        "vtb_transfers": _VTB_TRANSFERS_OFFICIAL,
+        "vtb_cash_qr": _VTB_CASH_QR_OFFICIAL,
+        "vtb_private_cards": _VTB_PRIVATE_CARDS_OFFICIAL,
+        "vtb_private_cashback": _VTB_PRIVATE_CASHBACK_OFFICIAL,
         "raiffeisen": _RAIF_PREMIUM_OFFICIAL,
         "gazprombank_premium": _GPB_PREMIUM_OFFICIAL,
         "gazprombank_premium_bonus": _GPB_PREMIUM_BONUS_OFFICIAL,
@@ -427,6 +574,7 @@ BANKS = [
                     _src("official", _SBER_PREMIUM_OFFICIAL),
                     _src("official", _SBER_PREMIER_OFFICIAL),
                     _src("official", _SBER_PREMIUM_TARIFF_PDF),
+                    _src("official", _SBER_PREMIER_TRAVEL_INSURANCE_PDF),
                     _src("official", _SBER_PREMIUM_VKLAD),
                     _src("official", _SBER_CARD_OFFICIAL),
                     _src("pbi", _PBI_SBER, f"{_PBI_SBER}/1"),
@@ -440,6 +588,7 @@ BANKS = [
                     _src("official", _SBER_PREMIUM_OFFICIAL),
                     _src("official", _SBER_PREMIER_OFFICIAL),
                     _src("official", _SBER_PREMIUM_TARIFF_PDF),
+                    _src("official", _SBER_PREMIER_TRAVEL_INSURANCE_PDF),
                     _src("official", _SBER_PREMIUM_VKLAD),
                     _src("official", _SBER_CARD_OFFICIAL),
                     _src("pbi", _PBI_SBER, f"{_PBI_SBER}/2"),
@@ -453,6 +602,7 @@ BANKS = [
                     _src("official", _SBER_PREMIUM_OFFICIAL),
                     _src("official", _SBER_PREMIER_OFFICIAL),
                     _src("official", _SBER_PREMIUM_TARIFF_PDF),
+                    _src("official", _SBER_PREMIER_TRAVEL_INSURANCE_PDF),
                     _src("official", _SBER_PREMIUM_VKLAD),
                     _src("official", _SBER_CARD_OFFICIAL),
                     _src("pbi", _PBI_SBER, f"{_PBI_SBER}/3"),
@@ -466,6 +616,7 @@ BANKS = [
                     _src("official", _SBER_PREMIUM_OFFICIAL),
                     _src("official", _SBER_FIRST_OFFICIAL),
                     _src("official", _SBER_PREMIUM_TARIFF_PDF),
+                    _src("official", _SBER_FIRST_4_TRAVEL_INSURANCE_PDF),
                     _src("official", _SBER_FIRST_VKLADY),
                     _src("official", _SBER_CARD_OFFICIAL),
                     _src("pbi", _PBI_SBER, f"{_PBI_SBER}/4"),
@@ -647,6 +798,7 @@ BANKS = [
                     _src("official", _ALFA_ACLUB_OFFICIAL,
                          "https://alfabank.ru/aclub/",
                          "https://www.aclub.ru/"),
+                    _src("official", _ALFA_RETAIL_TARIFFS),
                     _src("pbi", _PBI_ALFABANK, f"{_PBI_ALFABANK}/5"),
                 ],
             },
@@ -720,6 +872,14 @@ BANKS = [
                 "sources": [
                     _src("official", _VTB_PRIME_PLUS_OFFICIAL),
                     _src("official", _VTB_PRIME_PLUS_TARIFF_PDF),
+                    _src("official", _VTB_PRIME_OPERATIONS_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_RETAIL_TARIFFS_OFFICIAL),
+                    _src("official", _VTB_TRANSFERS_OFFICIAL),
+                    _src("official", _VTB_SBP_OFFICIAL),
+                    _src("official", _VTB_CASH_QR_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CARDS_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CASHBACK_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_CARD),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/5"),
@@ -732,6 +892,14 @@ BANKS = [
                 "sources": [
                     _src("official", _VTB_PRIME_PLUS_OFFICIAL),
                     _src("official", _VTB_PRIME_PLUS_TARIFF_PDF),
+                    _src("official", _VTB_PRIME_OPERATIONS_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_RETAIL_TARIFFS_OFFICIAL),
+                    _src("official", _VTB_TRANSFERS_OFFICIAL),
+                    _src("official", _VTB_SBP_OFFICIAL),
+                    _src("official", _VTB_CASH_QR_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CARDS_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CASHBACK_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_CARD),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/6"),
@@ -744,6 +912,14 @@ BANKS = [
                 "sources": [
                     _src("official", _VTB_PRIME_PLUS_OFFICIAL),
                     _src("official", _VTB_PRIME_PLUS_TARIFF_PDF),
+                    _src("official", _VTB_PRIME_OPERATIONS_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_RETAIL_TARIFFS_OFFICIAL),
+                    _src("official", _VTB_TRANSFERS_OFFICIAL),
+                    _src("official", _VTB_SBP_OFFICIAL),
+                    _src("official", _VTB_CASH_QR_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CARDS_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CASHBACK_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_CARD),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/7"),
@@ -756,6 +932,14 @@ BANKS = [
                 "sources": [
                     _src("official", _VTB_PRIME_PLUS_OFFICIAL),
                     _src("official", _VTB_PRIME_PLUS_TARIFF_PDF),
+                    _src("official", _VTB_PRIME_OPERATIONS_TARIFF_PDF),
+                    _src("official", _VTB_RKO_TARIFF_XLSX),
+                    _src("official", _VTB_RETAIL_TARIFFS_OFFICIAL),
+                    _src("official", _VTB_TRANSFERS_OFFICIAL),
+                    _src("official", _VTB_SBP_OFFICIAL),
+                    _src("official", _VTB_CASH_QR_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CARDS_OFFICIAL),
+                    _src("official", _VTB_PRIVATE_CASHBACK_OFFICIAL),
                     _src("official", _VTB_PRIVILEGE_CARD),
                     _src("official", _VTB_PRIVILEGE_OFFICIAL),
                     _src("pbi", _PBI_VTB, f"{_PBI_VTB}/8"),

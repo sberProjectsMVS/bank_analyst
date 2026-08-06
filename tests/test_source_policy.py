@@ -542,15 +542,30 @@ class SourcePolicyTests(unittest.TestCase):
                 "order": 1,
             }]
 
-            with patch.object(premium_changes, "fetch_pbi_updates", return_value=(records, 0)):
+            cache = Path(tmp) / "premium_changes_cache.json"
+            with (
+                patch.object(
+                    premium_changes, "fetch_pbi_updates", return_value=(records, 0),
+                ),
+                patch.object(premium_changes, "_load_changes_cache", return_value=[]),
+                patch.object(
+                    premium_changes,
+                    "load_editorial_news",
+                    return_value=([], {"failed": False}),
+                ),
+                patch.object(
+                    premium_changes, "load_monitored_premium_news", return_value=[],
+                ),
+                patch.object(premium_changes, "CHANGES_CACHE_PATH", cache),
+            ):
                 build_premium_changes_landing(workbook, output)
             html = output.read_text(encoding="utf-8")
 
         self.assertIn("Последние изменения", html)
-        self.assertIn("В Сбере опубликована новость из ПБИ.", html)
+        self.assertIn("В Сбере опубликована новость из ПБИ", html)
         self.assertIn("Сбер", html)
         self.assertIn(
-            "https://www.sberbank.ru/common/img/uploaded/files/pdf/tarif_premobsl_06032026.pdf",
+            "https://www.sberbank.ru/common/img/uploaded/files/pdf/tarif_premobsl_07072026.pdf",
             html,
         )
         self.assertNotIn('href="https://premiumbanking.info/sber"', html)
@@ -564,7 +579,7 @@ class SourcePolicyTests(unittest.TestCase):
             __import__("datetime").datetime(2026, 7, 15, 12, 0),
         )
 
-        self.assertEqual(html.count("Скрыть изменения"), 1)
+        self.assertEqual(html.count("Скрыть новости"), 1)
         self.assertNotIn("changes-panel-head", html)
         self.assertIn("changes-sticky-close", html)
 
@@ -731,7 +746,7 @@ class SourcePolicyTests(unittest.TestCase):
             f"{item['title']} {item.get('description', '')}"
             for item in benefits
         ).lower()
-        self.assertIn("здоровье", text)
+        self.assertNotIn("здоровье", text)
         self.assertNotIn("ассистанс", text)
         self.assertNotIn("потеря багажа", text)
 
@@ -832,15 +847,274 @@ class SourcePolicyTests(unittest.TestCase):
                 ],
             )
 
-        self.assertNotIn("cash_withdrawal", curated_for("alfa_aclub"))
+        aclub_cash = curated_for("alfa_aclub")["cash_withdrawal"]
+        self.assertIn("A-Club", aclub_cash["value"])
+        self.assertNotIn("Tariffs_Alfa_Only_Card.pdf", aclub_cash["source_url"])
+        self.assertIn("all_tariffs_1082026.pdf", aclub_cash["source_url"])
 
     def test_no_sber_status_hardcode_in_html(self):
-        source = inspect.getsource(sber_vs)
+        source = sber_vs._JS
 
         self.assertNotIn("sber_first_4", source)
         self.assertNotIn("sber_first_5", source)
         self.assertNotIn("sber_private_6", source)
         self.assertNotIn("hide_selectable_badge", source)
+
+    def test_sber_cash_limits_keep_free_and_technical_scopes_separate(self):
+        from scanner.curated import curated_for
+
+        facts = curated_for("sber_premier_2")
+        self.assertEqual(facts["atm_free_withdrawal"]["free_limit"], "1 000 000 ₽")
+        self.assertEqual(facts["atm_daily_limit"]["period"], "сутки")
+        self.assertEqual(
+            facts["cash_monthly_operational_limit"]["technical_limit"],
+            "5 000 000 ₽",
+        )
+        self.assertNotEqual(
+            facts["atm_free_withdrawal"]["free_limit"],
+            facts["cash_monthly_operational_limit"]["technical_limit"],
+        )
+
+    def test_sber_transfer_channels_follow_legal_tariff(self):
+        from scanner.curated import curated_for
+
+        premier = curated_for("sber_premier_2")
+        self.assertIn(
+            "Разделу III Альбома тарифов",
+            premier["interbank_transfers_remote"]["value"],
+        )
+        self.assertIn(
+            "Разделу III Альбома тарифов",
+            premier["interbank_transfers_office"]["value"],
+        )
+        self.assertIn(
+            "общего лимита 1 000 000 ₽ в месяц",
+            premier["legal_entity_payments"]["value"],
+        )
+        self.assertEqual(
+            premier["legal_entity_payments"]["source_url"],
+            "https://www.sberbank.ru/common/img/uploaded/files/pdf/"
+            "tarif_premobsl_07072026.pdf",
+        )
+
+        first = curated_for("sber_first_4")
+        self.assertIn(
+            "без комиссии",
+            first["interbank_transfers_remote"]["value"],
+        )
+        self.assertIn(
+            "2% от суммы, минимум 50 ₽, максимум 10 000 ₽",
+            first["interbank_transfers_office"]["value"],
+        )
+        self.assertIn(
+            "технический лимит в данном источнике не указан",
+            first["legal_entity_payments"]["value"],
+        )
+
+    def test_landing_keeps_vzr_and_each_named_option_to_one_row(self):
+        from landing import sber_vs
+
+        self.assertEqual(sber_vs.COMPARE_FIELDS.count("insurance"), 1)
+        for field_id in (
+            "insurance_russia_coverage", "insurance_foreign_coverage",
+            "insurance_covered_people", "insurance_owner_accompaniment",
+            "insurance_trip_duration", "insurance_trip_count",
+            "insurance_territorial_exclusions", "insurance_additional_risks",
+        ):
+            self.assertNotIn(field_id, sber_vs.COMPARE_FIELDS)
+        for field_id in (
+            "health_option", "pets_option", "auto",
+        ):
+            self.assertEqual(sber_vs.COMPARE_FIELDS.count(field_id), 1)
+        self.assertIn("'auto'", sber_vs._JS.split("ALWAYS_SHOW_FIELDS", 1)[1])
+        source = inspect.getsource(sber_vs)
+        self.assertNotIn("other_benefits_by_tier", source)
+
+    def test_landing_compacts_transfers_and_cash_to_two_rows(self):
+        self.assertEqual(sber_vs.COMPARE_FIELDS.count("transfers_summary"), 1)
+        self.assertEqual(sber_vs.COMPARE_FIELDS.count("cash_withdrawal_summary"), 1)
+        for field_id in (
+            "internal_transfers", "interbank_transfers_remote",
+            "interbank_transfers_office", "card_to_card_transfers", "sbp_transfers",
+            "legal_entity_payments", "atm_free_withdrawal",
+            "cash_monthly_operational_limit", "atm_daily_limit",
+            "cash_desk_daily_limit", "cash_over_limit_fee",
+        ):
+            self.assertNotIn(field_id, sber_vs.COMPARE_FIELDS)
+
+        row = {
+            "fields": {},
+            "field_records": {
+                "internal_transfers": {
+                    "value": "До 1 000 000 ₽ в месяц без комиссии; сверх лимита 0,5%",
+                    "free_limit": "1 000 000 ₽",
+                    "period": "месяц",
+                    "over_limit_fee": "0,5%, максимум 5 000 ₽",
+                },
+                "atm_free_withdrawal": {
+                    "value": "До 1 000 000 ₽ в месяц без комиссии",
+                    "free_limit": "1 000 000 ₽",
+                    "period": "месяц",
+                    "over_limit_fee": "2%",
+                },
+                "atm_daily_limit": {
+                    "value": "1 000 000 ₽ в сутки",
+                    "technical_limit": "1 000 000 ₽",
+                    "period": "сутки",
+                },
+            },
+        }
+        transfers = sber_vs._composite_metric("transfers_summary", row)["value"]
+        cash = sber_vs._composite_metric("cash_withdrawal_summary", row)["value"]
+        self.assertNotIn("\n", transfers)
+        self.assertNotIn("\n", cash)
+        self.assertIn(
+            "Внутри банка: лимит в месяц 1 000 000 ₽ бесплатно", transfers
+        )
+        self.assertIn("далее 0,5%, макс. 5 000 ₽", transfers)
+        self.assertIn("Без комиссии: лимит в месяц 1 000 000 ₽", cash)
+        self.assertIn("Банкомат: лимит в сутки 1 000 000 ₽", cash)
+
+    def test_composite_does_not_repeat_period_or_missing_limit_wording(self):
+        row = {
+            "fields": {},
+            "field_records": {
+                "card_to_card_transfers": {
+                    "value": "Бесплатно до 100 000 ₽ в месяц",
+                    "free_limit": "100 000 ₽ в месяц",
+                    "period": "месяц",
+                },
+                "sbp_transfers": {
+                    "value": "Переводы бесплатно; лимит не опубликован",
+                    "free_limit": "без опубликованного лимита",
+                    "period": "не указан",
+                },
+            },
+        }
+        value = sber_vs._composite_metric("transfers_summary", row)["value"]
+        self.assertIn("По номеру карты: лимит 100 000 ₽ в месяц", value)
+        self.assertNotIn("100 000 ₽ в месяц в месяц", value)
+        self.assertIn("СБП: бесплатно, числовой лимит не опубликован", value)
+
+    def test_sbp_compact_row_keeps_operation_daily_and_monthly_limits(self):
+        from landing import sber_vs
+
+        row = {
+            "fields": {},
+            "field_records": {
+                "sbp_transfers": {
+                    "value": (
+                        "Переводы через СБП на счета третьих лиц — без комиссии: "
+                        "до 1 млн ₽ за один перевод и в сутки, до 10 млн ₽ в месяц. "
+                        "Переводы через СБП на свои счета в других банках — "
+                        "без комиссии до 30 млн ₽ в месяц"
+                    ),
+                    "free_limit": "10 000 000 ₽ третьим лицам / 30 000 000 ₽ себе",
+                    "technical_limit": "1 000 000 ₽ за операцию и в сутки",
+                    "period": "месяц",
+                },
+            },
+        }
+        value = sber_vs._composite_metric("transfers_summary", row)["value"]
+        self.assertIn("лимит за перевод 1 млн ₽", value)
+        self.assertIn("лимит в сутки 1 млн ₽", value)
+        self.assertIn("лимит в месяц 10 млн ₽", value)
+        self.assertIn("себе — лимит в месяц 30 млн ₽", value)
+        self.assertNotIn("/мес", value)
+        self.assertNotIn("/сут", value)
+
+    def test_comparison_colors_cover_stronger_weaker_equal_and_missing(self):
+        from landing import sber_vs
+
+        self.assertIn("'rank-best', 'сильнее'", sber_vs._JS)
+        self.assertIn("cls: 'rank-low', label: 'слабее'", sber_vs._JS)
+        self.assertIn("'rank-low', 'слабее'", sber_vs._JS)
+        self.assertIn("cls: 'rank-mid'", sber_vs._JS)
+        self.assertIn("label: 'равно'", sber_vs._JS)
+        self.assertNotIn("'неоднозначно'", sber_vs._JS)
+        self.assertNotIn("'недостаточно данных'", sber_vs._JS)
+
+    def test_sber_insurance_is_tier_bound_and_not_copied_to_levels_5_6(self):
+        from scanner.curated import curated_for
+
+        premier = curated_for("sber_premier_2")
+        first = curated_for("sber_first_4")
+        self.assertIn("100 000 евро", premier["insurance_foreign_coverage"]["value"])
+        self.assertIn("1 000 000 евро", first["insurance_foreign_coverage"]["value"])
+        self.assertNotIn("insurance_foreign_coverage", curated_for("sber_first_5"))
+        self.assertNotIn("insurance_foreign_coverage", curated_for("sber_private_6"))
+
+    def test_structured_operation_fact_keeps_provenance_metadata(self):
+        from scanner.curated import curated_for
+
+        fact = curated_for("sber_premier_1")["internal_transfers"]
+        for key in (
+            "source_url", "document_title", "quoted_fragment", "date_checked",
+            "effective_date", "recipient", "channel", "free_limit",
+            "technical_limit", "period", "over_limit_fee",
+        ):
+            self.assertIn(key, fact)
+
+    def test_alfa_only_and_aclub_operations_are_bound_to_separate_official_sources(self):
+        from scanner.curated import curated_for
+
+        only_url = (
+            "https://alfabank.servicecdn.ru/site-upload/c1/65/275/"
+            "Tariffs_Alfa_Only_Card.pdf"
+        )
+        aclub_url = (
+            "https://alfabank.servicecdn.ru/site-upload/58/51/1869/"
+            "all_tariffs_1082026.pdf"
+        )
+        for tier_id in (
+            "alfa_only_1", "alfa_only_2", "alfa_only_3", "alfa_only_4",
+        ):
+            facts = curated_for(tier_id)
+            self.assertIn("100 000 ₽ в месяц", facts["card_to_card_transfers"]["value"])
+            self.assertEqual(facts["card_to_card_transfers"]["source_url"], only_url)
+            self.assertIn("1 500 000 ₽", facts["atm_daily_limit"]["value"])
+            self.assertIn("3 000 000 ₽", facts["cash_monthly_operational_limit"]["value"])
+
+        aclub = curated_for("alfa_aclub")
+        for field_id in (
+            "internal_transfers", "interbank_transfers_remote",
+            "interbank_transfers_office", "sbp_transfers",
+            "legal_entity_payments", "cash_withdrawal", "atm_free_withdrawal",
+        ):
+            self.assertEqual(aclub[field_id]["source_url"], aclub_url)
+        self.assertIn("100 000 ₽", aclub["sbp_transfers"]["value"])
+        self.assertIn("1,5%", aclub["cash_withdrawal"]["value"])
+
+    def test_comparison_display_hides_effective_date_but_keeps_source_value(self):
+        from report.json_writer import _field_record
+
+        record = _field_record(
+            field_id="entry_conditions",
+            field={
+                "value": (
+                    "Уровень «Изумруд» с 31 июля 2026 года: "
+                    "активы в ВТБ до 2,5 млн ₽"
+                ),
+                "source_url": "https://www.vtb.ru/promo/rsvtb-pv-2/",
+                "date_checked": "2026-07-28",
+                "effective_date": "2026-07-31",
+            },
+            bank_id="vtb",
+            bank_name="ВТБ",
+            tier_id="vtb_privilege_1",
+            tier_name="Привилегия — Изумруд",
+            scan_date="2026-08-05",
+        )
+
+        self.assertEqual(
+            record["display_value"],
+            "Активы в ВТБ до 2,5 млн ₽",
+        )
+        self.assertIn("с 31 июля 2026 года", record["value"])
+        self.assertEqual(record["effective_date"], "2026-07-31")
+        self.assertNotIn("last_change_date", __import__(
+            "report.json_writer", fromlist=["DISPLAY_BANK_FIELD_IDS"]
+        ).DISPLAY_BANK_FIELD_IDS)
 
     def test_ozon_deposits_are_curated_from_official_source(self):
         from scanner.curated import curated_for

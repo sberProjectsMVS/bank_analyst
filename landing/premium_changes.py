@@ -19,6 +19,9 @@ from scanner.sources import PRIORITY_SOURCE_URLS
 
 
 USER_AGENT = "bank-analyst-premium-updates/1.0"
+CHANGES_CACHE_PATH = (
+    Path(__file__).resolve().parent.parent / "data" / "premium_changes_cache.json"
+)
 PBI_UPDATE_SOURCES = [
     {"bank": "Сбер", "url": "https://premiumbanking.info/sber"},
     {"bank": "Альфа-Банк", "url": "https://premiumbanking.info/alfabank"},
@@ -79,12 +82,13 @@ MONTHS = {
 
 def build_premium_changes_landing(_workbook_path: Path, output_path: Path) -> dict:
     """Fetch every accepted update and write one filterable chronological feed."""
-    changes, failed = collect_premium_updates()
+    changes, failed = collect_premium_updates(use_cache=True)
     banks = group_by_bank(changes)
     html_text = render_html(banks, datetime.now())
     html_text = "\n".join(line.rstrip() for line in html_text.splitlines()) + "\n"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html_text, encoding="utf-8")
+    _write_changes_cache(changes)
     return {
         "output": str(output_path),
         "banks": len(banks),
@@ -100,13 +104,19 @@ def load_changes(_workbook_path: Path = None) -> list[dict]:
     The argument is accepted for compatibility with the main comparison builder;
     the comparison data itself is not used as a source for this feed.
     """
-    changes, _failed = collect_premium_updates()
+    changes, _failed = collect_premium_updates(use_cache=True)
     return changes
 
 
-def collect_premium_updates() -> tuple[list[dict], int]:
+def collect_premium_updates(use_cache: bool = False) -> tuple[list[dict], int]:
     """Combine PBI, editorial changes, and strict monitored news in one feed."""
     changes, failed = fetch_pbi_updates()
+    if use_cache:
+        cached = _load_changes_cache()
+        # The changes panel is a history, not a snapshot.  Keep cached records
+        # even after a successful refresh so a source removing an old item
+        # cannot silently erase it from the public site.
+        changes = _deduplicate_changes([*cached, *changes])
     editorial_changes, editorial_status = load_editorial_news(sync=True)
     changes.extend(editorial_changes)
     changes.extend(load_monitored_premium_news())
@@ -119,6 +129,40 @@ def collect_premium_updates() -> tuple[list[dict], int]:
     if editorial_status.get("failed"):
         failed += 1
     return changes, failed
+
+
+def _load_changes_cache(path: Path = CHANGES_CACHE_PATH) -> list[dict]:
+    """Load the last complete feed used as a fail-safe for rebuilds."""
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return []
+    records = payload.get("records", []) if isinstance(payload, dict) else []
+    return [record for record in records if isinstance(record, dict)]
+
+
+def _write_changes_cache(
+    records: list[dict], path: Optional[Path] = None,
+) -> None:
+    """Atomically retain the complete feed used by a successful build."""
+    destination = path or CHANGES_CACHE_PATH
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = destination.with_suffix(destination.suffix + ".tmp")
+    temporary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "cached_at": datetime.now().astimezone().isoformat(),
+                "records": records,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ) + "\n",
+        encoding="utf-8",
+    )
+    temporary_path.replace(destination)
 
 
 def load_all_news() -> list[dict]:
@@ -259,18 +303,18 @@ def render_changes_panel(banks: list[dict], generated_at: datetime) -> str:
       <section class="changes-panel js-changes-panel" data-storage-key="sber_vs_changes_collapsed">
         <div class="changes-panel-summary">
           <button type="button" class="changes-panel-toggle js-changes-show"
-              data-open-label="Последние изменения · {changes_count} событий · Скрыть"
-              data-closed-label="Последние изменения · {changes_count} событий · Показать"
+              data-open-label="Новости · {changes_count} публикаций · Скрыть"
+              data-closed-label="Новости · {changes_count} публикаций · Показать"
               aria-expanded="false">
-            Последние изменения · {changes_count} событий · Показать
+            Новости · {changes_count} публикаций · Показать
           </button>
         </div>
         <div class="changes-panel-body js-changes-panel-body" hidden>
           {render_changes_app(banks, generated_at)}
           <div class="changes-sticky-close">
             <button type="button" class="changes-hide-btn compact js-changes-hide"
-                aria-label="Скрыть раздел последних изменений">
-              Скрыть изменения ↑
+                aria-label="Скрыть раздел новостей">
+              Скрыть новости ↑
             </button>
           </div>
         </div>
@@ -338,14 +382,14 @@ def render_changes_app(
       </label>
       <label>Тип
         <select class="js-change-type-filter">
-          <option value="">Все изменения и новости</option>
+          <option value="">Все новости</option>
           {type_options}
         </select>
       </label>
     </section>
     <section class="unified-feed">
       <div class="timeline unified-timeline">
-        {feed_cards or '<p class="empty">Изменения не найдены.</p>'}
+        {feed_cards or '<p class="empty">Новости не найдены.</p>'}
       </div>
       <p class="empty js-change-empty" hidden>По выбранным фильтрам ничего не найдено.</p>
     </section>

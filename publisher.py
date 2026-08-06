@@ -3,11 +3,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 import shutil
 import subprocess
+import time
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from config import (
     BASE_DIR,
@@ -15,6 +18,7 @@ from config import (
     OUTPUT_DIR,
     PUBLISH_BRANCH,
     PUBLISHED_HTML,
+    PUBLISHED_URL,
     PUBLISH_EXTRA_ASSETS,
     SITE_REPOSITORY,
 )
@@ -62,7 +66,7 @@ def publish_site(html_path: Optional[Path] = None) -> bool:
 
     if not _has_staged_changes(site_repo, published_paths):
         log.info("Nothing changed.")
-        return True
+        return _verify_published_content(source_html)
 
     log.info("Running git commit...")
     if not _run_git(["commit", "-m", COMMIT_MESSAGE, "--", *published_paths], site_repo):
@@ -77,9 +81,82 @@ def publish_site(html_path: Optional[Path] = None) -> bool:
         log.error("Git push returned success, but origin/%s was not verified.",
                   PUBLISH_BRANCH)
         return False
+    if not _verify_published_content(source_html):
+        log.error("GitHub Pages did not serve the generated landing in time.")
+        return False
 
     log.info("Publication completed successfully.")
     return True
+
+
+def _verify_published_content(
+    source_html: Path,
+    *,
+    requester: Optional[Callable] = None,
+    sleeper=time.sleep,
+    attempts: int = 1000,
+    delay_seconds: float = 5.0,
+    deadline_seconds: float = 900.0,
+    clock=time.monotonic,
+) -> bool:
+    """Wait until the public URL serves the generated build."""
+    expected_bytes = source_html.read_bytes()
+    expected_digest = hashlib.sha256(expected_bytes).hexdigest()
+    marker_match = re.search(
+        rb'<meta name="bank-analyst-build" content="([^"]+)">',
+        expected_bytes[:16384],
+    )
+    expected_marker = marker_match.group(0) if marker_match else b""
+    separator = "&" if "?" in PUBLISHED_URL else "?"
+    deadline = clock() + deadline_seconds
+    for attempt in range(attempts):
+        # GitHub's CDN may cache a pre-deployment response for ten minutes,
+        # even with Cache-Control: no-cache.  A unique URL per poll avoids
+        # poisoning every later verification attempt with that stale object.
+        nonce = time.time_ns()
+        url = (
+            f"{PUBLISHED_URL}{separator}published={expected_digest[:16]}"
+            f"&attempt={attempt}-{nonce}"
+        )
+        if requester is None:
+            result = subprocess.run(
+                [
+                    "curl", "--fail", "--location", "--silent",
+                    "--show-error", "--max-time", "20",
+                    "--header", "Cache-Control: no-cache",
+                    *(["--range", "0-16383"] if expected_marker else []),
+                    url,
+                ],
+                capture_output=True,
+                check=False,
+            )
+            status_code = 200 if result.returncode == 0 else 0
+            content = result.stdout
+            if result.returncode != 0:
+                error = result.stderr.decode("utf-8", errors="replace").strip()
+                if error:
+                    log.warning("Public landing verification failed: %s", error)
+        else:
+            response = requester(
+                url,
+                headers={"Cache-Control": "no-cache"},
+                timeout=10,
+            )
+            status_code = getattr(response, "status_code", 0)
+            content = response.content
+        content_matches = (
+            expected_marker in content
+            if expected_marker
+            else hashlib.sha256(content).hexdigest() == expected_digest
+        )
+        if status_code == 200 and content_matches:
+            log.info("Published landing verified: %s", PUBLISHED_URL)
+            return True
+        remaining = deadline - clock()
+        if attempt + 1 >= attempts or remaining <= 0:
+            break
+        sleeper(min(delay_seconds, remaining))
+    return False
 
 
 def _prepare_repository(site_repo: Path) -> bool:

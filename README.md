@@ -96,7 +96,7 @@ python3 -m venv .venv
 .venv/bin/python main.py --scan-bank tbank        # один банк (id — см. --list-sources)
 .venv/bin/python main.py --scan-lifestyle         # только экосистемные подписки
 .venv/bin/python main.py --build-sber-vs          # лендинг сравнения Сбера с банками
-.venv/bin/python main.py --build-premium-changes  # пересборка ленты из уже собранных новостей + ПБИ + редакционных данных
+.venv/bin/python main.py --build-premium-changes  # пересборка ленты и публикация основной страницы
 .venv/bin/python main.py --sync-premium-news      # обновление редакционных новостей из Google Sheets
 .venv/bin/python main.py --build-premium-reviews  # отзывы о премиуме Сбера + HTML-отчёт
 .venv/bin/python main.py --list-sources           # список источников и id
@@ -152,9 +152,11 @@ Excel-отчёт, сравнение уровней и ленту:
   продуктовые лендинги, датированные тарифы и документы, официальные каналы;
 - Bankinform как дополнительный отраслевой источник.
 
-`--build-premium-changes` только пересобирает HTML из текущего кеша монитора,
-PremiumBanking.info и редакционных данных. Чтобы сначала проверить официальные
-источники и получить новые публикации, используйте `--scan-news`.
+`--build-premium-changes` пересобирает ленту из накопленного кеша монитора,
+PremiumBanking.info и редакционных данных, встраивает её в основную страницу,
+публикует страницу и проверяет результат по публичной ссылке. Чтобы сначала
+проверить официальные источники и получить новые публикации, используйте
+`--scan-news`.
 
 Технические события сервиса остаются в `data/service_log.json`, а полный
 changelog по сканам остаётся внутри истории и Excel-отчёта.

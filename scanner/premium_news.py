@@ -24,7 +24,6 @@ LOGGER = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CACHE_PATH = PROJECT_ROOT / "data" / "monitored_premium_news.json"
 USER_AGENT = "bank-analyst-premium-news/1.0"
-MAX_RECORDS = 500
 LOOKBACK_DAYS = 180
 
 MONTHS = {
@@ -819,7 +818,6 @@ def sync_premium_news_sources(
         for item in previous
         if isinstance(item, dict) and item.get("record_id")
     }
-    refreshed_source_ids = set()
     discovered = 0
     duplicates = 0
     sources_ok = []
@@ -830,16 +828,13 @@ def sync_premium_news_sources(
         try:
             records = _fetch_source(source, request)
             fresh_records.extend(records)
-            refreshed_source_ids.add(source["id"])
             sources_ok.append(source["name"])
         except PremiumNewsError as exc:
             sources_failed[source["name"]] = str(exc)
 
-    merged_by_id = {
-        record_id: item
-        for record_id, item in previous_by_id.items()
-        if item.get("source_id") not in refreshed_source_ids
-    }
+    # A listing is only a window into a source's history.  Pagination and
+    # shorter current pages must not erase news that was already observed.
+    merged_by_id = dict(previous_by_id)
     for item in fresh_records:
         record_id = item["record_id"]
         if record_id in previous_by_id:
@@ -856,7 +851,7 @@ def sync_premium_news_sources(
             item.get("source_name", ""),
         ),
         reverse=True,
-    )[:MAX_RECORDS]
+    )
     synced_at = datetime.now(timezone.utc).isoformat()
     _write_cache(
         {

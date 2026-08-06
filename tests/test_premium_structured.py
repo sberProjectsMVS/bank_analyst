@@ -25,7 +25,12 @@ from landing.sber_vs import (
     _service_cost_summary,
 )
 from report.json_writer import build_comparison_json
-from scanner.benefits import build_other_benefits
+from scanner.benefits import (
+    build_other_benefits,
+    health_option_field,
+    other_benefits_text,
+    pets_option_field,
+)
 from scanner.curated import curated_for
 from scanner.formatting import (
     format_natural_list,
@@ -49,6 +54,24 @@ def merged(value):
 
 
 class PremiumStructuredTests(unittest.TestCase):
+    def test_health_and_veterinary_services_are_split_once(self):
+        fields = {
+            "selectable_options": merged(
+                "Опция «Здоровье» (телемедицина, анализы, исследования, "
+                "медконсьерж, консультации ветеринара всегда включена)"
+            )
+        }
+
+        health = health_option_field(fields)["value"]
+        pets = pets_option_field(fields)["value"]
+        other = json.dumps(build_other_benefits(fields), ensure_ascii=False)
+
+        self.assertIn("телемедицина", health)
+        self.assertNotIn("ветеринар", health)
+        self.assertEqual(pets, "консультации ветеринара — включено постоянно")
+        self.assertNotIn("телемедицина", other)
+        self.assertNotIn("ветеринар", other)
+
     USER_VISIBLE_SHEETS = [
         "Сводная",
         "Сбер",
@@ -313,10 +336,9 @@ class PremiumStructuredTests(unittest.TestCase):
         )
 
         landing_source = Path("landing/sber_vs.py").read_text(encoding="utf-8")
-        self.assertIn(
-            "metric('coverage_rub', metric('coverage'))",
-            landing_source,
-        )
+        self.assertIn("function compareDominance", landing_source)
+        self.assertIn("const commonKeys", landing_source)
+        self.assertNotIn("fallbackRankVector", landing_source)
         self.assertNotIn("currencies.size > 1", landing_source)
 
     def test_entry_match_prefers_pure_capital_over_combined_lower_route(self):
@@ -975,9 +997,10 @@ class PremiumStructuredTests(unittest.TestCase):
             "Медицинский консьерж",
             "обследований и лечения",
             "России и за рубежом",
-            "PRIME",
         ):
             self.assertIn(marker, text)
+        self.assertNotIn("PRIME", text)
+        self.assertIn("PRIME", curated_for("alfa_aclub")["concierge"]["value"])
 
     def test_benefit_catalog_does_not_create_missing_benefits(self):
         from scanner.benefit_catalog import classify_benefit
@@ -1275,6 +1298,146 @@ class PremiumStructuredTests(unittest.TestCase):
         self.assertNotIn("Комфортное путешествие", other)
         self.assertIn("Спорт", other)
         self.assertIn("9000 бонусных рублей", other)
+
+    def test_auto_comparison_row_unifies_auto_and_roadside_source_names(self):
+        history = {
+            "scans": [{
+                "date": "2026-08-04",
+                "results": {
+                    "sber_premier_1": {
+                        "scan_date": "2026-08-04",
+                        "fields": {
+                            "auto": {
+                                "value": "Опция «Авто»",
+                                "source_url": "https://example.test/auto",
+                            },
+                            "roadside_option": {
+                                "value": "Помощь на дорогах — эвакуатор",
+                                "source_url": "https://example.test/roadside",
+                            },
+                        },
+                    },
+                    "sber_first_4": {
+                        "scan_date": "2026-08-04",
+                        "fields": {
+                            "auto": {
+                                "value": "Автоконсьерж",
+                                "source_url": "https://example.test/concierge",
+                            },
+                            "roadside_option": {"value": NOT_FOUND},
+                        },
+                    },
+                },
+            }],
+        }
+
+        rows = {
+            row["tier_id"]: row for row in build_comparison_json(history)["rows"]
+            if row["tier_id"] in {"sber_premier_1", "sber_first_4"}
+        }
+        premier = rows["sber_premier_1"]["fields"]
+        first = rows["sber_first_4"]["fields"]
+
+        self.assertIn("auto", premier)
+        self.assertNotIn("roadside_option", premier)
+        self.assertEqual(premier["auto"]["display_value"],
+                         "Помощь на дорогах — эвакуатор")
+        self.assertEqual(premier["auto"]["source_url"],
+                         "https://example.test/roadside")
+        self.assertEqual(first["auto"]["display_value"], "Автоконсьерж")
+        self.assertEqual(first["auto"]["source_url"],
+                         "https://example.test/concierge")
+
+    def test_specialized_restaurant_fragment_is_not_repeated_in_other_benefits(self):
+        truncated = "1 чек в сутки на 2 тыс ₽, только при вылете не более чем"
+        fields = {
+            "always_included_options": merged("СберПрайм"),
+            "selectable_options": merged(truncated),
+            "restaurants": merged(
+                truncated + " за 6 часов до вылета или отправления поезда"
+            ),
+            "other_benefits": {
+                "value": f"• {truncated} [опция на выбор]",
+                "raw_text": f"• {truncated} [опция на выбор]",
+                "source_id": "derived",
+            },
+        }
+
+        benefits = build_other_benefits(fields)
+        self.assertEqual({item["id"] for item in benefits}, {"sber_prime"})
+
+        history = {
+            "scans": [{
+                "date": "2026-08-04",
+                "results": {
+                    "sber_premier_2": {
+                        "scan_date": "2026-08-04",
+                        "fields": fields,
+                    },
+                },
+            }],
+        }
+        row = next(
+            item for item in build_comparison_json(history)["rows"]
+            if item["tier_id"] == "sber_premier_2"
+        )
+        other = row["fields"]["other_benefits"]["display_value"]
+        self.assertEqual(other, "• СберПрайм")
+        self.assertNotIn("1 чек в сутки", other)
+
+    def test_roadside_assistance_is_not_repeated_with_different_wording(self):
+        fields = {
+            "auto": merged(
+                "Есть — «Помощь на дорогах»: эвакуатор, техническая и "
+                "юридическая поддержка"
+            ),
+            "ecosystem": merged(
+                "Помощь на дорогах — консультации, подвоз топлива, эвакуатор | "
+                "Доступ в сервис appoint"
+            ),
+        }
+
+        text = json.dumps(build_other_benefits(fields), ensure_ascii=False)
+        self.assertNotIn("Помощь на дорогах", text)
+        self.assertNotIn("appoint", text)
+
+    def test_roadside_assistance_never_leaks_from_ecosystem_to_other_benefits(self):
+        fields = {
+            "ecosystem": merged(
+                "Помощь на дорогах — консультации, подвоз топлива, эвакуатор | "
+                "Доступ в сервис appoint"
+            ),
+        }
+
+        text = json.dumps(build_other_benefits(fields), ensure_ascii=False)
+        self.assertNotIn("Помощь на дорогах", text)
+        self.assertNotIn("appoint", text)
+
+    def test_short_concierge_name_is_not_repeated(self):
+        fields = {
+            "concierge": merged("Есть — консьерж Pb Service для private-клиентов"),
+            "ecosystem": merged("Консьерж Pb Service | Сбер Мобайл"),
+        }
+
+        text = json.dumps(build_other_benefits(fields), ensure_ascii=False)
+        self.assertNotIn("Pb Service", text)
+        self.assertIn("Сбер Мобайл", text)
+
+    def test_contextless_visit_count_is_not_shown_as_a_benefit(self):
+        fields = {
+            "selectable_options": merged(
+                "Опция «Спорт и красота» (6000 бонусных рублей Фитмост) | "
+                "4 в мес"
+            ),
+            "restaurants": merged(
+                "4 посещения в месяц по 2000 ₽ — опция «Такси и рестораны»; "
+                "до 2 чеков в сутки"
+            ),
+        }
+
+        text = json.dumps(build_other_benefits(fields), ensure_ascii=False)
+        self.assertNotIn("4 в мес", text)
+        self.assertNotIn("Спорт и красота", text)
 
     def test_ozon_general_page_levels(self):
         html = """
@@ -1741,7 +1904,7 @@ class PremiumStructuredTests(unittest.TestCase):
                             "score": {"total": 0, "breakdown": {}},
                             "fields": {
                                 **self._comparison_fields(),
-                                "transfers_payments": {
+                                "internal_transfers": {
                                     "value": "переводы без комиссии до 1 млн ₽",
                                     "source_id": "official",
                                     "source_type": "official",
@@ -1749,7 +1912,7 @@ class PremiumStructuredTests(unittest.TestCase):
                                     "date_checked": "2026-07-17",
                                     "raw_text": "переводы без комиссии до 1 млн ₽",
                                 },
-                                "cash_withdrawal": {
+                                "atm_free_withdrawal": {
                                     "value": "снятие наличных без комиссии до 500 000 ₽",
                                     "source_id": "official",
                                     "source_type": "official",
@@ -1757,13 +1920,13 @@ class PremiumStructuredTests(unittest.TestCase):
                                     "date_checked": "2026-07-17",
                                     "raw_text": "снятие наличных без комиссии до 500 000 ₽",
                                 },
-                                "supreme": {
-                                    "value": "Карта Мир Supreme включена",
+                                "metal_card": {
+                                    "value": "Металлическая карта включена",
                                     "source_id": "official",
                                     "source_type": "official",
-                                    "source_url": "https://bank.example/sber/supreme",
+                                    "source_url": "https://bank.example/sber/metal",
                                     "date_checked": "2026-07-17",
-                                    "raw_text": "Карта Мир Supreme включена",
+                                    "raw_text": "Металлическая карта включена",
                                 },
                             },
                         },
@@ -1796,7 +1959,7 @@ class PremiumStructuredTests(unittest.TestCase):
             html = output.read_text(encoding="utf-8")
 
         row = next(item for item in payload["rows"] if item["tier_id"] == "sber_premier_1")
-        for field_id in ("transfers_payments", "cash_withdrawal", "supreme"):
+        for field_id in ("internal_transfers", "atm_free_withdrawal", "metal_card"):
             self.assertIn(field_id, row["fields"])
             self.assertEqual(row["fields"][field_id]["source_type"], "official")
             self.assertEqual(row["fields"][field_id]["date_checked"], "2026-07-17")
@@ -1805,18 +1968,18 @@ class PremiumStructuredTests(unittest.TestCase):
             self.assertIn(row["fields"][field_id]["display_value"], html)
 
         summary_header = next(wb["Сводная"].iter_rows(min_row=1, max_row=1, values_only=True))
-        self.assertIn("Переводы и платежи без комиссии", summary_header)
-        self.assertIn("Снятие наличных", summary_header)
-        self.assertIn("Supreme", summary_header)
+        self.assertIn("Переводы физлицам внутри банка", summary_header)
+        self.assertIn("Бесплатное снятие в банкоматах", summary_header)
+        self.assertIn("Металлическая карта", summary_header)
         self.assertIn("Не найдено в доступных источниках", html)
-        self.assertIn(
-            "const ALWAYS_SHOW_FIELDS = new Set(['transfers_payments', 'cash_withdrawal', 'supreme']);",
-            html,
-        )
+        self.assertIn("const ALWAYS_SHOW_FIELDS = new Set([", html)
+        self.assertIn("'transfers_summary'", html)
+        self.assertIn("'cash_withdrawal_summary'", html)
+        self.assertIn("'metal_card'", html)
         self.assertIn("!ALWAYS_SHOW_FIELDS.has(baseAttr.id)", html)
         self.assertIn('"tier_id": "sber_premier_1"', html)
-        self.assertIn("gazprombankTransferHierarchyFallback", html)
-        self.assertIn("Private — старший уровень", html)
+        self.assertNotIn("fallbackRankVector", html)
+        self.assertNotIn("gazprombankTransferHierarchyFallback", html)
 
     def test_pbi_parser_extracts_new_bank_fields_without_cross_tier_transfer(self):
         html = """
@@ -1863,8 +2026,59 @@ class PremiumStructuredTests(unittest.TestCase):
 
         self.assertEqual(
             {item["id"] for item in benefits},
-            {"sber_prime", "samokat", "health", "pets", "auto"},
+            {"sber_prime"},
         )
+
+    def test_other_benefits_never_include_selection_rules_or_shared_lounge_services(self):
+        fields = {
+            "always_included_options": merged("СберПрайм"),
+            "ecosystem": merged(
+                "Приоритетная регистрация в аэропорту | "
+                "·ON·PACK в лимите БЗ | Преференции — 2 посещения в месяц"
+            ),
+            "selection_rules": merged(
+                "1 преференция = 1 использование выбранного сервиса. "
+                "Проверка условий — с последнего дня предыдущего месяца"
+            ),
+        }
+
+        text = other_benefits_text(fields)
+
+        self.assertIn("СберПрайм", text)
+        self.assertIn("Приоритетная регистрация", text)
+        self.assertNotIn("Условия выбора", text)
+        self.assertNotIn("Преференции", text)
+        self.assertNotIn("ON·PACK", text)
+
+    def test_package_description_does_not_swallow_following_bullets(self):
+        fields = {
+            "selectable_options": merged(
+                "Пакет «Развлечения» — до 5000 ₽ на Афиша.ру • "
+                "СберПрайм [включено постоянно]"
+            ),
+        }
+
+        benefits = build_other_benefits(fields)
+        by_id = {item["id"]: item for item in benefits}
+
+        self.assertEqual(by_id["entertainment"]["description"], "до 5000 ₽ на Афиша.ру")
+        self.assertEqual(by_id["sber_prime"]["title"], "СберПрайм")
+        self.assertNotIn("СберПрайм", by_id["entertainment"]["description"])
+
+    def test_bonus_exchange_is_not_repeated_outside_cashback(self):
+        fields = {
+            "cashback": merged(
+                "Кэшбэк до 10%; обмен бонусов: 10 бонусов = 7 ₽"
+            ),
+            "ecosystem": merged(
+                "СберПрайм | Обмен 10 бонусов = 7 ₽ с лимитом 12500 Б в мес"
+            ),
+        }
+
+        text = other_benefits_text(fields)
+
+        self.assertEqual(text, "• СберПрайм")
+        self.assertNotIn("Обмен", text)
 
     def test_sber_level_1_no_insurance_leak(self):
         benefits = build_other_benefits({
@@ -1885,7 +2099,7 @@ class PremiumStructuredTests(unittest.TestCase):
             "горные лыжи", "сноуборд", "страхован", "ассистанс",
         ):
             self.assertNotIn(marker, dumped)
-        self.assertEqual({item["id"] for item in benefits}, {"samokat"})
+        self.assertEqual(benefits, [])
 
     def test_sber_levels_4_5_6_curated_other_benefits(self):
         from scanner.curated import curated_for
@@ -1954,7 +2168,7 @@ class PremiumStructuredTests(unittest.TestCase):
 
         alfa_only = curated_for("alfa_only_2")
         self.assertIn("до 100 000 ₽ в месяц", alfa_only["transfers_payments"]["value"])
-        self.assertIn("Снятие наличных", alfa_only["cash_withdrawal"]["value"])
+        self.assertIn("снятие наличных", alfa_only["cash_withdrawal"]["value"].lower())
         self.assertIn("МИР Supreme доступна клиентам Alfa Only",
                       alfa_only["supreme"]["value"])
         self.assertIn("mir-supreme-short", alfa_only["supreme"]["source_url"])

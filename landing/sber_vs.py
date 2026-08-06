@@ -61,8 +61,38 @@ FIELD_COLUMNS = {
     "taxi": "Такси",
     "restaurants": "Рестораны",
     "insurance": "Страхование",
+    "auto": "Авто / помощь на дорогах",
     "concierge": "Консьерж-сервис",
     "other_benefits": "Другие привилегии",
+    **{
+        field_id: label for field_id, label in (
+            ("internal_transfers", "Переводы физлицам внутри банка"),
+            ("interbank_transfers_remote", "Межбанковские переводы — приложение / УКО"),
+            ("interbank_transfers_office", "Межбанковские переводы — офис / ОКР"),
+            ("card_to_card_transfers", "Переводы по номеру карты"),
+            ("sbp_transfers", "Переводы через СБП"),
+            ("legal_entity_payments", "Платежи / переводы юридическим лицам"),
+            ("atm_free_withdrawal", "Бесплатное снятие в банкоматах"),
+            ("cash_monthly_operational_limit", "Общий месячный лимит выдачи наличных"),
+            ("atm_daily_limit", "Суточный лимит в банкоматах"),
+            ("cash_desk_daily_limit", "Суточный лимит через кассу"),
+            ("cash_over_limit_fee", "Комиссия сверх бесплатного лимита"),
+            ("insurance_russia_coverage", "ВЗР — покрытие в РФ"),
+            ("insurance_foreign_coverage", "ВЗР — покрытие за рубежом"),
+            ("insurance_covered_people", "ВЗР — кого покрывает страховка"),
+            ("insurance_owner_accompaniment", "ВЗР — сопровождение владельцем"),
+            ("insurance_trip_duration", "ВЗР — длительность поездки"),
+            ("insurance_trip_count", "ВЗР — количество поездок"),
+            ("insurance_territorial_exclusions", "ВЗР — территориальные исключения"),
+            ("insurance_additional_risks", "ВЗР — дополнительные риски"),
+            ("health_option", "Здоровье"),
+            ("samokat_option", "Самокат"),
+            ("pets_option", "Питомцы"),
+            ("sport_beauty_option", "Спорт и красота"),
+            ("metal_card", "Металлическая карта"),
+            ("personal_banking_support", "Персональное банковское сопровождение"),
+        )
+    },
 }
 
 FIELD_LABELS = {
@@ -79,7 +109,13 @@ FIELD_LABELS = {
     "restaurants": "Рестораны",
     "insurance": "Страхование",
     "other_benefits": "Другие привилегии",
+    "transfers_summary": "Переводы и платежи",
+    "cash_withdrawal_summary": "Снятие наличных",
 }
+FIELD_LABELS.update({
+    field_id: label for field_id, label in FIELD_COLUMNS.items()
+    if field_id not in FIELD_LABELS
+})
 
 # Порядок атрибутов в таблице сравнения
 COMPARE_FIELDS = (
@@ -87,25 +123,58 @@ COMPARE_FIELDS = (
     "service_cost",
     "lounge_access",
     "cashback",
-    "transfers_payments",
-    "cash_withdrawal",
+    "transfers_summary",
+    "cash_withdrawal_summary",
     "supreme",
+    "metal_card",
     "deposits",
     "taxi",
     "restaurants",
     "insurance",
+    "health_option",
+    "samokat_option",
+    "pets_option",
+    "sport_beauty_option",
+    "auto",
     "concierge",
+    "personal_banking_support",
     "other_benefits",
 )
+
+SCOPED_FACT_FIELDS = set(COMPARE_FIELDS) - {
+    "entry_conditions", "service_cost", "lounge_access", "cashback",
+    "supreme", "deposits", "taxi", "restaurants", "insurance",
+    "concierge", "other_benefits",
+}
+
+COMPOSITE_FIELDS = {
+    "transfers_summary": (
+        ("internal_transfers", "Внутри банка"),
+        ("interbank_transfers_remote", "Межбанк в приложении"),
+        ("interbank_transfers_office", "Межбанк в офисе"),
+        ("card_to_card_transfers", "По номеру карты"),
+        ("sbp_transfers", "СБП"),
+        ("legal_entity_payments", "Юрлицам"),
+    ),
+    "cash_withdrawal_summary": (
+        ("atm_free_withdrawal", "Без комиссии"),
+        ("cash_monthly_operational_limit", "Общий лимит"),
+        ("atm_daily_limit", "Банкомат"),
+        ("cash_desk_daily_limit", "Касса"),
+        ("cash_over_limit_fee", "Сверх лимита"),
+    ),
+}
 
 # Служебное описание методики. Итоговый балл намеренно не рассчитывается:
 # разные категории нельзя складывать без профиля и весов конкретного клиента.
 def _methodology_text() -> str:
     return (
         "Условия сравниваются отдельно по каждой категории. Сначала применяется "
-        "сравнение всех подтверждённых существенных параметров. Если полный "
-        "порядок не получается, используется фиксированный приоритет показателей "
-        "категории. Без цвета остаются только отсутствующие данные."
+        "сравнение всех подтверждённых существенных параметров в одинаковом "
+        "контексте: канал, период и вид операции. Подтверждённое условие отмечается "
+        "сильнее отсутствующего, отсутствие данных — слабее, а доказанное равенство "
+        "лимитов и условий — как равное. Разнонаправленные преимущества помечаются "
+        "как неоднозначные."
     )
 
 
@@ -165,6 +234,7 @@ def load_summary_rows(data_path: Path) -> list[dict]:
             key: _clean(_json_field_value(field_records.get(key)))
             for key in FIELD_COLUMNS
         }
+        row["field_records"] = field_records
         row["details"] = {
             key: _clean(_json_field_details(field_records.get(key)))
             for key in FIELD_COLUMNS
@@ -215,7 +285,7 @@ def build_payload(rows: list[dict]) -> list[dict]:
                     # Legacy scalar is retained for payload compatibility only.
                     # Browser ranking uses the structured evaluation below.
                     "score": metric["score"],
-                    "evaluation": _category_evaluation(
+                    "evaluation": metric.get("evaluation_override") or _category_evaluation(
                         field,
                         metric.get("evaluation_text") or row["fields"].get(field, ""),
                         metric.get("value"),
@@ -241,6 +311,8 @@ def build_payload(rows: list[dict]) -> list[dict]:
 
 def _attr_metric(field: str, row: dict) -> dict:
     """Attribute display value + comparable score for one level."""
+    if field in COMPOSITE_FIELDS:
+        return _composite_metric(field, row)
     field_record = row["fields"].get(field, "")
     raw = _json_field_value(field_record) if isinstance(field_record, dict) else field_record
     detail_raw = (
@@ -262,7 +334,9 @@ def _attr_metric(field: str, row: dict) -> dict:
         override = _sber_landing_override(field, row)
         if override:
             return override
-        benefits = _benefits_list(raw)
+        # Preserve source bullet boundaries. `display_value` is normalized to
+        # one line in JSON, while `raw_text` retains one benefit per line.
+        benefits = _benefits_list(detail_raw or raw)
         return {"value": benefits, "score": None,
                 "note": _shorten(raw, 260), "kind": "benefits", "details": ""}
 
@@ -276,6 +350,14 @@ def _attr_metric(field: str, row: dict) -> dict:
     override = _sber_landing_override(field, row)
     if override:
         return override
+    if field in SCOPED_FACT_FIELDS:
+        return {
+            "value": raw,
+            "score": None,
+            "note": _shorten(raw, 260),
+            "details": _details(detail_raw, raw),
+            "evaluation_text": raw,
+        }
     try:
         scorer_field = "taxi_restaurants" if field in ("taxi", "restaurants") else field
         metric, _legacy_score = SCORERS[scorer_field](raw)
@@ -295,6 +377,200 @@ def _attr_metric(field: str, row: dict) -> dict:
     )
     return {"value": value, "score": score, "note": _shorten(public_raw, 260),
             "details": _details(public_details, value)}
+
+
+def _composite_metric(field: str, row: dict) -> dict:
+    """Build one compact presentation row from scope-safe JSON facts."""
+    parts = []
+    missing = []
+    details = []
+    components = {}
+    records = row.get("field_records", {})
+    for field_id, label in COMPOSITE_FIELDS[field]:
+        record = records.get(field_id)
+        value = _json_field_value(record) if isinstance(record, dict) else (
+            row.get("fields", {}).get(field_id, "")
+        )
+        if _is_missing(str(value or "")):
+            missing.append(label.lower())
+            components[field_id] = {
+                "label": label,
+                "present": False,
+                "evaluation": _missing_evaluation(),
+            }
+            continue
+        evaluation = _category_evaluation(field_id, value, value, row)
+        if evaluation.get("status") == "comparable":
+            original_scope = dict(evaluation.get("scope") or {})
+            if field_id in {
+                "internal_transfers", "interbank_transfers_remote",
+                "interbank_transfers_office", "card_to_card_transfers",
+                "sbp_transfers",
+                "legal_entity_payments", "atm_daily_limit",
+                "cash_desk_daily_limit",
+            }:
+                evaluation["scope"] = {"component": field_id}
+            else:
+                evaluation["scope"] = {
+                    "component": field_id,
+                    **original_scope,
+                }
+        components[field_id] = {
+            "label": label,
+            "present": True,
+            "evaluation": evaluation,
+        }
+        parts.append(f"{label}: {_compact_composite_value(field_id, record, value)}")
+        details.append(f"{label}: {value}")
+    if not parts:
+        display = NOT_FOUND_AVAILABLE
+    else:
+        display = "; ".join(parts)
+        if missing:
+            display += f"; нет данных: {', '.join(missing)}"
+    evaluation_override = _evaluation(
+        "composite",
+        {"components": components},
+        {},
+        _shorten(display, 160),
+        scope={"group": field},
+        reason=(
+            "Каждый подпункт сравнивается отдельно: только при одинаковом виде "
+            "операции, канале и периоде."
+        ),
+    ) if parts else _missing_evaluation()
+    return {
+        "value": display,
+        "score": None,
+        "note": display,
+        "details": "\n".join(details),
+        "evaluation_text": display,
+        "evaluation_override": evaluation_override,
+    }
+
+
+def _compact_composite_value(field_id: str, record, value) -> str:
+    """Shorten a structured fact without changing its confirmed meaning."""
+    text = re.sub(r"\s+", " ", str(value or "")).strip(" .;")
+    metadata = record if isinstance(record, dict) else {}
+    free_limit = str(metadata.get("free_limit") or "").strip()
+    technical_limit = str(metadata.get("technical_limit") or "").strip()
+    period = str(metadata.get("period") or "").strip()
+    fee = str(metadata.get("over_limit_fee") or "").strip()
+
+    if free_limit.lower().startswith("без опубликованного"):
+        return "бесплатно, числовой лимит не опубликован"
+
+    if field_id == "cash_over_limit_fee" and fee:
+        return _compact_units(fee)
+
+    if field_id == "legal_entity_payments" and free_limit:
+        amount, separator, shared_note = free_limit.partition(" — ")
+        compact = _limit_with_period(amount, period)
+        if "без комис" in text.lower():
+            compact += " бесплатно"
+        if separator and shared_note:
+            compact += f" ({shared_note})"
+        if fee:
+            compact += f"; далее {fee}"
+        return _compact_units(compact)
+
+    if field_id == "atm_free_withdrawal" and free_limit:
+        compact = _limit_with_period(free_limit, period)
+        return _compact_units(compact)
+
+    if "Альбома тарифов" in text and free_limit in {"", "не указан"}:
+        compact = "по Альбому тарифов"
+        if "не указан" in text:
+            compact += "; лимит не указан"
+        return compact
+
+    if field_id == "sbp_transfers" and free_limit:
+        parsed_sbp = _compact_sbp_limits(text)
+        if parsed_sbp:
+            return parsed_sbp
+        compact = f"бесплатно — {_limit_with_period(free_limit, period)}"
+        if technical_limit and "не указан" not in technical_limit:
+            compact += f"; {technical_limit}"
+        return _compact_units(compact)
+
+    if free_limit and free_limit not in {"не указан", "не применяется"}:
+        compact = _limit_with_period(free_limit, period)
+        if "без комис" in text.lower() or free_limit == "без комиссии":
+            compact = compact.replace("без комиссии", "бесплатно")
+            if "бесплатно" not in compact:
+                compact += " бесплатно"
+        if technical_limit and technical_limit not in {
+            "не указан", "не выделен отдельно", free_limit,
+        }:
+            compact += f"; техлимит {technical_limit}"
+        if fee and fee not in {"0%", ""}:
+            compact += f"; далее {fee}"
+        return _compact_units(compact)
+
+    if technical_limit and technical_limit not in {
+        "не указан", "не выделен отдельно",
+    }:
+        return _compact_units(_limit_with_period(technical_limit, period))
+
+    if fee:
+        return _compact_units(fee)
+
+    text = re.sub(r"^[^:]{0,120}:\s*", "", text)
+    text = text.replace(
+        "технический лимит в данном источнике не указан", "лимит не указан"
+    )
+    text = text.replace("без комиссии", "бесплатно")
+    return _compact_units(_shorten(text, 150))
+
+
+def _limit_with_period(amount: str, period: str) -> str:
+    """Render a compact but explicit period label for a confirmed limit."""
+    value = re.sub(r"\s+", " ", str(amount or "")).strip()
+    low = value.lower()
+    if any(marker in low for marker in (
+        "в месяц", "в сутки", "в день", "за операцию",
+    )):
+        return value if "лимит" in low else f"лимит {value}"
+    period_phrase = {
+        "месяц": "в месяц",
+        "сутки": "в сутки",
+        "операция": "за операцию",
+    }.get(str(period or "").lower(), str(period or "").strip())
+    if period_phrase:
+        return f"лимит {period_phrase} {value}"
+    return f"лимит {value}" if value else "лимит не указан"
+
+
+def _compact_sbp_limits(text: str) -> str:
+    """Keep operation, daily, and monthly SBP limits in one readable line."""
+    amount = r"(\d[\d\s]*(?:[.,]\d+)?\s*(?:млн|тыс)?\s*₽)"
+    operation_daily = re.search(
+        rf"до\s+{amount}\s+за\s+один\s+перевод\s+и\s+в\s+сутки",
+        text,
+        flags=re.IGNORECASE,
+    )
+    monthly = re.findall(
+        rf"до\s+{amount}\s+в\s+месяц", text, flags=re.IGNORECASE,
+    )
+    if operation_daily and monthly:
+        daily_amount = _compact_units(operation_daily.group(1))
+        third_month = _compact_units(monthly[0])
+        compact = (
+            f"третьим лицам — лимит за перевод {daily_amount}, "
+            f"лимит в сутки {daily_amount}, лимит в месяц {third_month}"
+        )
+        if len(monthly) > 1:
+            own_month = _compact_units(monthly[1])
+            compact += f"; себе — лимит в месяц {own_month}"
+        return compact
+    return ""
+
+
+def _compact_units(text: str) -> str:
+    compact = str(text)
+    compact = compact.replace("максимум", "макс.").replace("минимум", "мин.")
+    return re.sub(r"\s+", " ", compact).strip(" .;")
 
 
 def _sber_landing_override(field: str, row: dict):
@@ -340,33 +616,6 @@ def _sber_landing_override(field: str, row: dict):
             ),
         },
     }
-    other_benefits_by_tier = {
-        "sber_premier_2": (
-            "• Здоровье — телемедицина, анализы, исследования [опция на выбор]\n"
-            "• Самокат — 2 заказа по 1000 ₽ [опция на выбор]\n"
-            "• Питомцы — лечение и консультации [опция на выбор]\n"
-            "• Авто — помощь на дорогах, кэшбэк 15% за платные дороги и парковки [опция на выбор]\n"
-            "• СберПрайм [включено постоянно]\n"
-            "Условия выбора: одна опция в месяц (изменить можно до использования)"
-        ),
-        "sber_premier_3": (
-            "• Здоровье — телемедицина, анализы, исследования [опция на выбор]\n"
-            "• Спорт и красота — 6000 бонусных рублей Фитмост [опция на выбор]\n"
-            "• Развлечения — до 5000 ₽ на Афиша.ру [опция на выбор]\n"
-            "• Самокат — 2 заказа по 1500 ₽ [опция на выбор]\n"
-            "• Питомцы — лечение и консультации [опция на выбор]\n"
-            "• Авто — помощь на дорогах, кэшбэк 15% за платные дороги и парковки [опция на выбор]\n"
-            "• СберПрайм [включено постоянно]\n"
-            "• Обмен 10 бонусов = 7 ₽ с лимитом 12500 Б в мес\n"
-            "Условия выбора: одна опция в месяц (изменить можно до использования)"
-        ),
-    }
-    if field == "other_benefits" and tier_id in other_benefits_by_tier:
-        raw = other_benefits_by_tier[tier_id]
-        benefits = _benefits_list(raw)
-        return {"value": benefits, "score": None,
-                "note": "", "kind": "benefits", "details": "",
-                "evaluation_text": raw}
     value = text_by_field.get(field, {}).get(tier_id)
     if not value:
         return None
@@ -384,11 +633,13 @@ def render_html(banks: list[dict], rows: list[dict], changes: list[dict] = None)
     payload = json.dumps(banks, ensure_ascii=False).replace("</", "<\\/")
     bank_chips = _render_bank_chips(banks)
     changes_panel = premium_changes.render_changes_panel(changes, datetime.now())
+    build_id = datetime.now().strftime("%Y%m%dT%H%M%S%f")
 
     return f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <meta name="bank-analyst-build" content="{build_id}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -801,9 +1052,43 @@ def _category_evaluation(field: str, raw_value, display_value, row: dict) -> dic
             text, (row.get("scan_date") or "")[:10]
         ),
         "insurance": _insurance_evaluation,
+        "sport_beauty_option": _sport_beauty_evaluation,
         "concierge": lambda text: _service_presence_evaluation(text, "concierge"),
         "supreme": lambda text: _service_presence_evaluation(text, "supreme"),
     }
+    for field_id in {
+        "internal_transfers", "interbank_transfers_remote",
+        "interbank_transfers_office", "card_to_card_transfers", "sbp_transfers",
+        "legal_entity_payments",
+    }:
+        evaluators[field_id] = lambda text, _field=field_id: _limit_evaluation(
+            text, "transfers_payments"
+        )
+    for field_id in {
+        "atm_free_withdrawal", "cash_monthly_operational_limit",
+        "atm_daily_limit", "cash_desk_daily_limit",
+    }:
+        evaluators[field_id] = lambda text, _field=field_id: _limit_evaluation(
+            text, "cash_withdrawal"
+        )
+    for field_id in {
+        "health_option", "samokat_option", "pets_option", "auto",
+        "metal_card", "personal_banking_support",
+    }:
+        evaluators[field_id] = lambda text, _field=field_id: (
+            _service_presence_evaluation(text, _field)
+        )
+    for field_id in {
+        "cash_over_limit_fee", "insurance_russia_coverage",
+        "insurance_foreign_coverage", "insurance_covered_people",
+        "insurance_owner_accompaniment", "insurance_trip_duration",
+        "insurance_trip_count", "insurance_territorial_exclusions",
+        "insurance_additional_risks",
+    }:
+        evaluators[field_id] = lambda text: _incomparable_evaluation(
+            "Условие показано отдельно; автоматический числовой ранг не применяется.",
+            _shorten(text, 110),
+        )
     evaluator = evaluators.get(field)
     if evaluator is None:
         return _incomparable_evaluation("Для категории не задана надёжная метрика.")
@@ -922,10 +1207,97 @@ def _entry_evaluation(text: str) -> dict:
     summary = "; ".join(
         f"{labels[key]} {_compact_rub(value)}" for key, value in metrics.items()
     )
+    structure = _entry_structure_metrics(text)
+    metrics.update(structure)
+    standalone_capital = _standalone_capital_threshold(text)
+    if standalone_capital is not None:
+        metrics["standalone_capital_threshold"] = standalone_capital
+    directions = {key: "lower" for key in metrics}
+    directions["alternative_count"] = "higher"
     return _evaluation(
-        "dominance", metrics, {key: "lower" for key in metrics}, summary,
-        reason="Меньший порог лучше только для одинакового способа входа.",
+        "entry", metrics, directions, summary,
+        reason=(
+            "Меньший порог лучше только для одинакового способа входа; "
+            "обязательная комбинация «И» сложнее, а дополнительные варианты "
+            "входа через «ИЛИ» выгоднее."
+        ),
     )
+
+
+def _standalone_capital_threshold(text: str):
+    """Return the conservative regional asset-only threshold, excluding AND bundles."""
+    normalized = re.sub(r"\bи\s+или\b", "или", text, flags=re.IGNORECASE)
+    clauses = re.split(
+        r"(?:;|\n|\.(?=\s|$)|\b(?:или|либо)\b)", normalized,
+        flags=re.IGNORECASE,
+    )
+    thresholds = []
+    for clause in clauses:
+        low = clause.lower()
+        amounts = _rub_amounts(clause)
+        if not amounts or _monthly_rub_cost(clause) is not None:
+            continue
+        if any(marker in low for marker in (
+            "трат", "покуп", "оборот", "зарплат", "зачислен", "поступлен",
+        )):
+            continue
+        if any(marker in low for marker in ("акци", "совмест")):
+            continue
+        has_capital_context = any(marker in low for marker in (
+            "актив", "остат", "капитал", "на счет", "на счёт",
+        ))
+        if has_capital_context or re.fullmatch(
+            r"\s*\d[\d\s.,]*(?:млн|тыс)?\s*(?:₽|руб)\s*", clause,
+            flags=re.IGNORECASE,
+        ):
+            thresholds.append(min(amounts))
+    # If regions have different thresholds, use the strictest one. This avoids
+    # presenting a regional minimum as if it applied to every client.
+    return max(thresholds) if thresholds else None
+
+
+def _entry_structure_metrics(text: str) -> dict:
+    """Describe AND/OR complexity without mixing unrelated money thresholds."""
+    normalized = re.sub(r"\bи\s+или\b", "или", text, flags=re.IGNORECASE)
+    alternatives = re.split(
+        r"(?:;\s*)?\b(?:или|либо)\b\s*", normalized,
+        flags=re.IGNORECASE,
+    )
+    if "одного из условий" in normalized.lower() and ";" in normalized:
+        tail = normalized.lower().split("одного из условий", 1)[1]
+        semicolon_options = [part for part in tail.split(";") if _rub_amounts(part)]
+        if len(semicolon_options) > len(alternatives):
+            alternatives = semicolon_options
+
+    mandatory_counts = []
+    valid_alternatives = 0
+    for option in alternatives:
+        if _monthly_rub_cost(option) is not None and not any(
+            marker in option.lower() for marker in ("остат", "актив", "трат", "покуп", "зарплат")
+        ):
+            continue
+        criteria = set()
+        low = option.lower()
+        for marker, criterion in (
+            ("трат", "spend"), ("покуп", "spend"),
+            ("зарплат", "income"), ("зачислен", "income"),
+            ("остат", "capital"), ("актив", "capital"),
+            ("счет", "capital"), ("счёт", "capital"),
+            ("акци", "special_assets"),
+        ):
+            if marker in low:
+                criteria.add(criterion)
+        if not criteria and _rub_amounts(option):
+            criteria.add("capital")
+        if not criteria:
+            continue
+        valid_alternatives += 1
+        mandatory_counts.append(len(criteria))
+
+    return {
+        "mandatory_count": min(mandatory_counts or [1]),
+        "alternative_count": max(1, valid_alternatives),
+    }
 
 
 def _service_evaluation(text: str) -> dict:
@@ -1112,6 +1484,25 @@ def _lounge_evaluation(text: str) -> dict:
         counts = _monthly_counts(text)
         if counts:
             metrics["visits_monthly"] = max(counts)
+    preference_equivalence = re.search(
+        r"1\s*преференци\w*\s*=\s*1\s*"
+        r"(?:проход\w*|использовани\w*)",
+        low,
+    )
+    preference_counts = [
+        float(value.replace(",", "."))
+        for value in re.findall(
+            r"(\d+(?:[.,]\d+)?)\s*преференци\w*"
+            r"(?:\s+в\s+месяц|\s*/\s*мес)",
+            low,
+        )
+    ]
+    if preference_equivalence and preference_counts:
+        preference_visits = max(preference_counts)
+        metrics["visits_monthly"] = max(
+            preference_visits, metrics.get("visits_monthly", 0)
+        )
+        metrics["shared_preference_pool"] = 1
     annual_counts = _annual_counts(text)
     if annual_counts:
         metrics["annual_cap"] = max(annual_counts)
@@ -1143,8 +1534,12 @@ def _lounge_evaluation(text: str) -> dict:
     return _evaluation(
         "lounge", metrics, directions, summary,
         reason=(
-            "Учитываются посещения, число явно названных сервисов доступа, "
-            "постоянная включённость и подтверждённые гости."
+            "Ранг определяется подтверждённым максимумом посещений. "
+            "Сервисы доступа показываются справочно и не разрывают равенство. "
+            + (
+                "Проходы расходуются из общего баланса преференций. "
+                if metrics.get("shared_preference_pool") else ""
+            )
         ),
     )
 
@@ -1189,7 +1584,7 @@ def _lounge_access_programs(text: str) -> list[str]:
 def _compensation_evaluation(text: str, field: str) -> dict:
     if _explicit_absence(text):
         return _evaluation(
-            "dominance", {"monthly_total": 0}, {"monthly_total": "higher"},
+            "compensation", {"monthly_total": 0}, {"monthly_total": "higher"},
             "Не предусмотрено",
         )
     low = text.lower()
@@ -1287,16 +1682,20 @@ def _compensation_evaluation(text: str, field: str) -> dict:
     elif availability == 2:
         labels.append("включено постоянно")
     return _evaluation(
-        "dominance", metrics, {key: "higher" for key in metrics},
+        "compensation", metrics, {key: "higher" for key in metrics},
         ", ".join(labels) or FIELD_LABELS[field],
-        reason="Сравниваются общий номинал, количество, лимит одного использования и статус подключения.",
+        reason=(
+            "Сначала сравнивается общая компенсация в месяц, затем количество "
+            "использований и лимит одного использования."
+        ),
     )
 
 
 def _cashback_evaluation(text: str) -> dict:
     if _explicit_absence(text):
         return _evaluation(
-            "dominance", {"rate": 0}, {"rate": "higher"}, "Кэшбэк не предусмотрен"
+            "cashback", {"max_rate": 0}, {"max_rate": "higher"},
+            "Кэшбэк не предусмотрен"
         )
     rates = [float(value.replace(",", ".")) for value in re.findall(
         r"(\d+(?:[.,]\d+)?)\s*%", text
@@ -1349,6 +1748,9 @@ def _cashback_evaluation(text: str) -> dict:
             metrics["monthly_bonus_cap"] = bonus_cap
             if "monthly_cap" not in metrics and "bonus_rub_value" in metrics:
                 metrics["monthly_cap"] = bonus_cap * metrics["bonus_rub_value"]
+    effective_cap = metrics.get("monthly_cap", metrics.get("monthly_bonus_cap"))
+    if effective_cap is not None:
+        metrics["effective_monthly_cap"] = effective_cap
     if not metrics:
         return _incomparable_evaluation(
             "Ставка, лимит и число категорий кэшбэка не указаны.",
@@ -1362,8 +1764,11 @@ def _cashback_evaluation(text: str) -> dict:
     if "max_rate" in metrics and "base_rate" not in metrics:
         summary += ", оценка только по опубликованной максимальной ставке"
     return _evaluation(
-        "dominance", metrics, {key: "higher" for key in metrics}, summary,
-        reason="Максимальная ставка сравнивается отдельно от базовой ставки, категорий и лимита выплаты.",
+        "cashback", metrics, {key: "higher" for key in metrics}, summary,
+        reason=(
+            "Сначала сравнивается подтверждённый месячный лимит кешбэка, "
+            "затем общие подтверждённые ставки и количество категорий."
+        ),
     )
 
 
@@ -1420,70 +1825,122 @@ def _deposits_evaluation(text: str, scan_date: str) -> dict:
 def _insurance_evaluation(text: str) -> dict:
     if _explicit_absence(text):
         return _evaluation(
-            "dominance", {"coverage": 0}, {"coverage": "higher"},
+            "insurance", {"max_coverage_rub": 0},
+            {"max_coverage_rub": "higher"},
             "Страхование не предусмотрено",
         )
     low = text.lower()
     availability = _availability_metric(text)
-    coverage_match = re.search(
-        r"([$€])\s*(\d+(?:[.,]\d+)?)"
-        r"(?:\s*/\s*(\d+(?:[.,]\d+)?))?\s*(млн|тыс)?",
-        text,
-        flags=re.IGNORECASE,
-    )
     metrics = {}
-    scope = {}
-    if coverage_match:
-        first = float(coverage_match.group(2).replace(",", "."))
-        second = coverage_match.group(3)
-        second_value = float(second.replace(",", ".")) if second else first
-        unit = (coverage_match.group(4) or "").lower()
-        multiplier = 1_000_000 if unit == "млн" else 1000 if unit == "тыс" else 1
-        currency = coverage_match.group(1)
-        metrics["coverage"] = first * multiplier
-        metrics["coverage_rub"] = (
-            metrics["coverage"] * INSURANCE_FX_RUB_PER_UNIT[currency]
-        )
-        if second is not None:
-            metrics["secondary_coverage"] = second_value * multiplier
-            metrics["secondary_coverage_rub"] = (
-                metrics["secondary_coverage"]
-                * INSURANCE_FX_RUB_PER_UNIT[currency]
-            )
-        scope["currency"] = currency
+    coverages = _insurance_coverages(text)
+    if coverages:
+        rub_values = [item["rub"] for item in coverages]
+        metrics["max_coverage_rub"] = max(rub_values)
+        owner = [item["rub"] for item in coverages if item["person"] == "owner"]
+        family = [item["rub"] for item in coverages if item["person"] == "family"]
+        russia = [item["rub"] for item in coverages if item["territory"] == "russia"]
+        foreign = [item["rub"] for item in coverages if item["territory"] == "foreign"]
+        if owner:
+            metrics["owner_coverage_rub"] = max(owner)
+        if family:
+            metrics["family_coverage_rub"] = max(family)
+        if russia:
+            metrics["russia_coverage_rub"] = max(russia)
+        if foreign:
+            metrics["foreign_coverage_rub"] = max(foreign)
+        territories = {item["territory"] for item in coverages if item["territory"]}
+        if territories:
+            metrics["territory_count"] = len(territories)
     days = [float(value) for value in re.findall(r"(\d+)\s*(?:дн|дней|дня)", low)]
     if days:
         metrics["trip_days"] = max(days)
     if availability is not None:
         metrics["availability"] = availability
-    if "по всему миру" in low or "worldwide" in low or "глобальн" in low:
-        scope["territory"] = "worldwide"
-    elif "росси" in low:
-        scope["territory"] = "russia"
+    if any(marker in low for marker in ("по всему миру", "worldwide", "глобальн")):
+        metrics["territory_count"] = max(metrics.get("territory_count", 0), 2)
     if not metrics:
         return _incomparable_evaluation(
             "Страховая сумма и сопоставимый объём покрытия не выделены.",
             _shorten(text, 110),
         )
     summary_parts = []
-    if "coverage" in metrics:
+    if "max_coverage_rub" in metrics:
         summary_parts.append(
-            f"владелец: {metrics['coverage']:g} {scope.get('currency', '')}".strip()
-        )
-    if "secondary_coverage" in metrics:
-        summary_parts.append(
-            f"член семьи: {metrics['secondary_coverage']:g} "
-            f"{scope.get('currency', '')}".strip()
+            f"максимум {_compact_rub(metrics['max_coverage_rub'])} в эквиваленте"
         )
     if "trip_days" in metrics:
         summary_parts.append(f"до {metrics['trip_days']:g} дней")
     return _evaluation(
-        "dominance", metrics, {key: "higher" for key in metrics},
-        ", ".join(summary_parts) or "Подтверждённое страхование", scope=scope,
+        "insurance", metrics, {key: "higher" for key in metrics},
+        ", ".join(summary_parts) or "Подтверждённое страхование",
         reason=("Учитываются сумма, срок, территория и статус подключения. "
                 "Покрытия в долларах и евро сопоставляются в рублёвом "
                 f"эквиваленте по официальному курсу ЦБ на {INSURANCE_FX_DATE}."),
     )
+
+
+def _insurance_coverages(text: str) -> list[dict]:
+    """Extract source-stated insurance amounts without changing displayed facts."""
+    patterns = (
+        re.compile(
+            r"(?P<currency>[$€])\s*(?P<amount>\d[\d\s]*(?:[.,]\d+)?)"
+            r"\s*(?P<unit>млн|тыс)?",
+            flags=re.IGNORECASE,
+        ),
+        re.compile(
+            r"(?P<amount>\d[\d\s]*(?:[.,]\d+)?)\s*(?P<unit>млн|тыс)?\s*"
+            r"(?P<currency>евро|eur|доллар(?:ов|а)?|usd)",
+            flags=re.IGNORECASE,
+        ),
+    )
+    found = []
+    occupied = []
+    for pattern in patterns:
+        for match in pattern.finditer(text):
+            if any(match.start() < end and start < match.end() for start, end in occupied):
+                continue
+            amount = _parse_rub_number(match.group("amount"))
+            if amount is None:
+                continue
+            unit = (match.group("unit") or "").lower()
+            if unit == "тыс":
+                amount *= 1000
+            elif unit == "млн":
+                amount *= 1_000_000
+            raw_currency = match.group("currency").lower()
+            currency = "€" if raw_currency in {"€", "евро", "eur"} else "$"
+            before = text[max(0, match.start() - 25):match.start()].lower()
+            after = text[match.end():min(len(text), match.end() + 45)].lower()
+            family_pattern = r"(?:для|на)\s+(?:одного\s+)?член\w*\s+семь"
+            owner_pattern = r"(?:для|на)\s+владел"
+            family_match = re.search(family_pattern, after)
+            owner_match = re.search(owner_pattern, after)
+            if family_match and owner_match:
+                person = (
+                    "family" if family_match.start() < owner_match.start() else "owner"
+                )
+            elif family_match:
+                person = "family"
+            elif owner_match:
+                person = "owner"
+            else:
+                person = "family" if re.search(family_pattern, before) else (
+                    "owner" if re.search(owner_pattern, before) else ""
+                )
+            territory = "russia" if re.search(r"\b(?:рф|росси)\b", after) else (
+                "foreign" if any(marker in after for marker in (
+                    "за рубеж", "зарубеж", "иностран", "по всему миру", "worldwide",
+                )) else ""
+            )
+            found.append({
+                "amount": amount,
+                "currency": currency,
+                "rub": amount * INSURANCE_FX_RUB_PER_UNIT[currency],
+                "person": person,
+                "territory": territory,
+            })
+            occupied.append(match.span())
+    return found
 
 
 def _insurance_display(text: str) -> str:
@@ -1561,6 +2018,42 @@ def _service_presence_evaluation(text: str, field: str) -> dict:
     return _evaluation(
         "ordinal", metrics, directions, label,
         reason="Статус наличия, бесплатность и подтверждённые условия сравниваются раздельно.",
+    )
+
+
+def _sport_beauty_evaluation(text: str) -> dict:
+    """Compare access to sport/beauty without equating unlike currencies.
+
+    Fitmost bonus rubles and appoint points have different providers and
+    periods, so their nominal amounts are displayed but not ranked against one
+    another. The reliable common dimension is whether access is included or
+    requires choosing an option.
+    """
+    low = text.lower()
+    if _explicit_absence(text):
+        return _evaluation(
+            "ordinal", {"service_rank": 0}, {"service_rank": "higher"},
+            "Не предусмотрено",
+            reason="Сравнивается подтверждённая доступность категории.",
+        )
+    if not _has_benefit(text):
+        return _incomparable_evaluation(
+            "Доступность категории не подтверждена однозначно.",
+            _shorten(text, 110),
+        )
+    if "всегда включ" in low or "включено постоянно" in low:
+        rank, label = 4, "Включено постоянно"
+    elif re.search(r"\bопци[яи]\b", low) or "пакет «спорт»" in low:
+        rank, label = 2, "Доступно как опция на выбор"
+    else:
+        rank, label = 3, "Доступ к категории подтверждён"
+    return _evaluation(
+        "ordinal", {"service_rank": rank}, {"service_rank": "higher"},
+        label,
+        reason=(
+            "Сравнивается доступность категории. Номиналы Фитмост и appoint "
+            "не сопоставляются: это разные сервисы, единицы и периоды."
+        ),
     )
 
 
@@ -1787,6 +2280,8 @@ def _monthly_counts(text: str) -> list[float]:
         for n in re.findall(
             r"(\d+(?:[.,]\d+)?)\s*(?:в мес|/мес|раз(?:а|ов)? в месяц|"
             r"посещени(?:е|я|й) в месяц|привилеги(?:я|и|й) в месяц|"
+            r"проход(?:а|ов)? в месяц|преференци(?:я|и|й) в месяц|"
+            r"компенсаци(?:я|и|й)[^.;]{0,35}в месяц|"
             r"поезд(?:ка|ки|ок)[^.;]{0,20}в месяц)", low
         )
     ]
@@ -2199,6 +2694,8 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 .pair-detail { padding: 0 14px 14px; border-top: 1px solid var(--line); }
 .pair-detail .cmp-scroll { max-height: none; margin-top: 14px; box-shadow: none; }
 .pair-detail-note { margin: 12px 2px 0; color: var(--muted); font-size: 12px; }
+.level-pdf-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.level-pdf-button { min-height: 40px; }
 .no-analog { background: #f7f9f5; color: var(--muted); font-style: italic; }
 .cmp-head {
   display: grid;
@@ -2267,6 +2764,7 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 .pdf-exporting .compare-actions { display: block; margin: 0 0 10px; }
 .pdf-exporting .compare-actions .pdf-button,
 .pdf-exporting .compare-actions .secondary-button { display: none; }
+.pdf-exporting .level-pdf-actions { display: none; }
 .pdf-exporting .print-title { display: block; margin: 0; font-size: 24px;
   line-height: 1.2; font-weight: 800; color: #111; }
 .pdf-exporting .print-date { display: block; margin: 4px 0 0; color: #4f5c55; }
@@ -2297,6 +2795,7 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
   .pair-detail { padding: 0 0 2px; border-top: 1px solid var(--line); }
   .pair-detail .cmp-scroll { margin-top: 0; }
   .pair-detail-note { padding: 0 12px; }
+  .level-pdf-actions { padding: 0 12px 10px; }
   .recommendation-grid { grid-template-columns: 1fr; }
   .recommendation-card { min-height: 0; }
   .chip-row { gap: 8px; }
@@ -2333,7 +2832,8 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
   .page { max-width: none; margin: 0; padding: 0; }
   .hero, .pickers, .recommendations, #hint,
   #js-warning, .footer,
-  .compare-actions .pdf-button, .compare-actions .secondary-button {
+  .compare-actions .pdf-button, .compare-actions .secondary-button,
+  .level-pdf-actions {
     display: none !important;
   }
   #compare { display: block !important; margin: 0; }
@@ -2376,7 +2876,10 @@ h1 { margin: 0; font-size: 42px; line-height: 1.08; }
 _JS = """
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const SIDES = ['a', 'b'];
-const ALWAYS_SHOW_FIELDS = new Set(['transfers_payments', 'cash_withdrawal', 'supreme']);
+const ALWAYS_SHOW_FIELDS = new Set([
+  'transfers_summary', 'cash_withdrawal_summary',
+  'supreme', 'metal_card', 'auto', 'personal_banking_support'
+]);
 const HTML2CANVAS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
 const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 let pdfLibraryPromise = null;
@@ -2632,11 +3135,19 @@ function renderPairDetail(container, pair, leftBank, rightBank) {
   table.appendChild(tbody);
   scroll.appendChild(table);
   detail.appendChild(scroll);
+  const actions = el('div', 'level-pdf-actions');
+  const pdfButton = el('button', 'pdf-button level-pdf-button', 'Выгрузить PDF этого уровня');
+  pdfButton.type = 'button';
+  pdfButton.addEventListener('click', () => exportLevelPdf(container, pdfButton));
+  actions.appendChild(pdfButton);
+  detail.appendChild(actions);
   container.appendChild(detail);
 }
 
 function renderPair(pair, leftBank, rightBank) {
   const details = el('details', 'level-pair');
+  details.dataset.leftTier = pair.left ? pair.left.tier : '';
+  details.dataset.rightTier = pair.right ? pair.right.tier : '';
   const summary = el('summary');
   const grid = el('div', 'pair-grid');
   grid.appendChild(renderLevelCard(
@@ -2807,6 +3318,79 @@ async function exportComparePdf() {
   }
 }
 
+function levelPdfFileName(pairElement) {
+  const tiers = [pairElement.dataset.leftTier, pairElement.dataset.rightTier]
+    .filter(Boolean);
+  const name = 'premium-level-comparison-' + tiers.join('-vs-');
+  return name
+    .toLowerCase()
+    .replace(/[^a-zа-яё0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120) + '.pdf';
+}
+
+async function exportLevelPdf(pairElement, button) {
+  if (!pairElement || !button) return;
+  const originalText = button.textContent;
+  const wasOpen = pairElement.open;
+  const restore = () => {
+    pairElement.open = wasOpen;
+    document.body.classList.remove('pdf-exporting');
+    button.disabled = false;
+    button.textContent = originalText;
+  };
+  pairElement.open = true;
+  button.disabled = true;
+  button.textContent = 'Готовлю PDF...';
+  document.body.classList.add('pdf-exporting');
+  try {
+    const { html2canvas, jsPDF } = await loadPdfLibrary();
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    await new Promise((resolve) => requestAnimationFrame(
+      () => requestAnimationFrame(resolve)
+    ));
+    const marginMm = 8;
+    const captureSize = pdfCaptureSizeForElement(pairElement);
+    const canvas = await html2canvas(pairElement, {
+      scale: captureSize.scale,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: captureSize.widthPx,
+      height: captureSize.heightPx,
+      windowWidth: Math.max(document.documentElement.clientWidth, captureSize.widthPx)
+    });
+    const pdf = new jsPDF({
+      unit: 'mm',
+      format: 'a3',
+      orientation: 'landscape',
+      compress: true
+    });
+    const sheetWidth = pdf.internal.pageSize.getWidth();
+    const sheetHeight = pdf.internal.pageSize.getHeight();
+    const availableWidth = sheetWidth - marginMm * 2;
+    const availableHeight = sheetHeight - marginMm * 2;
+    const fit = Math.min(
+      availableWidth / canvas.width,
+      availableHeight / canvas.height
+    );
+    const imageWidth = canvas.width * fit;
+    const imageHeight = canvas.height * fit;
+    const imageX = (sheetWidth - imageWidth) / 2;
+    const imageY = marginMm;
+    pdf.addImage(
+      canvas.toDataURL('image/jpeg', 0.98),
+      'JPEG', imageX, imageY, imageWidth, imageHeight, undefined, 'FAST'
+    );
+    pdf.save(levelPdfFileName(pairElement));
+  } catch (error) {
+    console.error('Level PDF export failed', error);
+    const detail = error && error.message ? `\n${error.message}` : '';
+    window.alert(`Не удалось подготовить PDF уровня. Повторите выгрузку.${detail}`);
+  } finally {
+    restore();
+  }
+}
+
 function highlightWinners(selectedItems, attrsBySide, cellsBySide) {
   const entries = selectedItems.map((entry) => ({
     side: entry.side,
@@ -2842,254 +3426,108 @@ function rankEvaluations(entries) {
   const available = entries.filter(
     (entry) => !isMissingRankEntry(entry)
   );
-  if (!available.length) return entries.map((entry) => results.get(entry.side));
-
-  if (available.every((entry) => entry.evaluation.status === 'comparable')) {
-    const totals = new Map(available.map((entry) => [entry.side, 0]));
-    let structuredOrder = true;
-    for (let i = 0; i < available.length && structuredOrder; i += 1) {
-      for (let j = i + 1; j < available.length; j += 1) {
-        const comparison = compareEvaluations(
-          available[i].evaluation, available[j].evaluation
-        );
-        if (comparison.order === null) {
-          structuredOrder = false;
-          break;
-        }
-        totals.set(
-          available[i].side, totals.get(available[i].side) + comparison.order
-        );
-        totals.set(
-          available[j].side, totals.get(available[j].side) - comparison.order
-        );
-      }
-    }
-    if (structuredOrder) {
-      return applyVisualRanks(
-        entries, available, results,
-        new Map(available.map((entry) => [entry.side, [totals.get(entry.side)]])),
-        false
-      );
-    }
-  }
-
-  const hierarchyFallback = gazprombankTransferHierarchyFallback(available);
-  if (hierarchyFallback) {
-    return applyVisualRanks(
-      entries, hierarchyFallback.entries, results,
-      hierarchyFallback.vectors, false
-    );
-  }
-
-  const vectors = new Map(
-    available.map((entry) => [entry.side, fallbackRankVector(entry)])
-  );
-  return applyVisualRanks(entries, available, results, vectors, true);
-}
-
-function gazprombankTransferHierarchyFallback(entries) {
-  if (!entries.length
-      || !entries.every((entry) => entry.bank === 'Газпромбанк')
-      || !entries.every((entry) => entry.attr?.id === 'transfers_payments')) {
-    return null;
-  }
-  const hasPrivate = entries.some((entry) => entry.tierId === 'gpb_private');
-  const hasPremium = entries.some(
-    (entry) => String(entry.tierId || '').startsWith('gpb_premium_')
-  );
-  const privateComparable = entries.some(
-    (entry) => entry.tierId === 'gpb_private'
-      && entry.evaluation.status === 'comparable'
-  );
-  if (!hasPrivate || !hasPremium || privateComparable) return null;
-
-  const reason = 'Для несопоставимых каналов переводов внутри Газпромбанка '
-    + 'применена иерархия пакетов: Private — старший уровень. '
-    + 'Бесплатный лимит Private не придуман и в тексте не подменён.';
-  const rankedEntries = entries.map((entry) => {
-    const isPrivate = entry.tierId === 'gpb_private';
-    return {
-      ...entry,
-      evaluation: {
-        ...entry.evaluation,
-        summary: isPrivate
-          ? 'Старший уровень Private; каналы переводов различаются'
-          : 'Уровень Premium; каналы переводов различаются',
-        reason: [entry.evaluation.reason, reason].filter(Boolean).join(' ')
-      }
-    };
+  const missing = entries.filter((entry) => isMissingRankEntry(entry));
+  missing.forEach((entry) => {
+    results.set(entry.side, visualRankResult(
+      entry, 'missing', 'rank-low', 'слабее',
+      'Подтверждённое условие отсутствует в доступных источниках.'
+    ));
   });
-  return {
-    entries: rankedEntries,
-    vectors: new Map(rankedEntries.map(
-      (entry) => [entry.side, [entry.tierId === 'gpb_private' ? 1 : 0]]
-    ))
-  };
-}
-
-function applyVisualRanks(entries, available, results, vectors, fallbackUsed) {
-  const uniqueVectors = [];
-  available.forEach((entry) => {
-    const vector = vectors.get(entry.side);
-    if (!uniqueVectors.some((candidate) => deepEqual(candidate, vector))) {
-      uniqueVectors.push(vector);
-    }
-  });
-  uniqueVectors.sort((left, right) => -compareRankVectors(left, right));
-
+  if (!available.length) {
+    missing.forEach((entry) => {
+      results.set(entry.side, visualRankResult(
+        entry, 'equal', 'rank-mid', 'равно',
+        'У обоих вариантов условие отсутствует или не найдено.'
+      ));
+    });
+    return entries.map((entry) => results.get(entry.side));
+  }
   if (available.length === 1) {
     const entry = available[0];
-    results.set(entry.side, rankedResult(
-      entry, { cls: 'rank-best', label: 'сильнее' }, false, fallbackUsed
+    results.set(entry.side, visualRankResult(
+      entry, 'comparable', 'rank-best', 'сильнее',
+      'Условие подтверждено; у второго варианта данных нет.'
     ));
     return entries.map((item) => results.get(item.side));
   }
+  if (available.length !== 2
+      || !available.every((entry) => entry.evaluation.status === 'comparable')) {
+    available.forEach((entry) => {
+      results.set(entry.side, neutralRankResult(
+        entry, 'insufficient',
+        entry.evaluation.reason || 'Ключевые данные отсутствуют.'
+      ));
+    });
+    return entries.map((entry) => results.get(entry.side));
+  }
 
-  const visualRanks = uniqueVectors.length === 1
-    ? [{ cls: 'rank-mid', label: 'среднее' }]
-    : uniqueVectors.length === 2
-    ? [
-        { cls: 'rank-best', label: 'сильнее' },
-        { cls: 'rank-low', label: 'слабее' }
-      ]
-    : [
-        { cls: 'rank-best', label: 'сильнее' },
-        { cls: 'rank-mid', label: 'среднее' },
-        { cls: 'rank-low', label: 'слабее' }
-      ];
-  available.forEach((entry) => {
-    const vector = vectors.get(entry.side);
-    const groupIndex = uniqueVectors.findIndex(
-      (candidate) => deepEqual(candidate, vector)
-    );
-    const groupSize = available.filter(
-      (candidate) => deepEqual(vectors.get(candidate.side), vector)
-    ).length;
-    results.set(
-      entry.side,
-      rankedResult(entry, visualRanks[groupIndex], groupSize > 1, fallbackUsed)
-    );
-  });
+  const comparison = compareEvaluations(
+    available[0].evaluation, available[1].evaluation
+  );
+  if (comparison.order === null) {
+    const status = comparison.status === 'ambiguous'
+      ? 'ambiguous' : 'insufficient';
+    const reason = comparison.reason;
+    available.forEach((entry) => {
+      results.set(entry.side, neutralRankResult(entry, status, reason));
+    });
+    return entries.map((entry) => results.get(entry.side));
+  }
+  if (comparison.order === 0) {
+    available.forEach((entry) => {
+      results.set(entry.side, {
+        side: entry.side,
+        status: 'equal',
+        cls: 'rank-mid',
+        label: 'равно',
+        summary: entry.evaluation.summary,
+        reason: comparison.reason || entry.evaluation.reason
+      });
+    });
+    return entries.map((entry) => results.get(entry.side));
+  }
+  const winner = comparison.order > 0 ? available[0] : available[1];
+  const loser = comparison.order > 0 ? available[1] : available[0];
+  results.set(winner.side, rankedResult(
+    winner, { cls: 'rank-best', label: 'сильнее' }, comparison.reason
+  ));
+  results.set(loser.side, rankedResult(
+    loser, { cls: 'rank-low', label: 'слабее' }, comparison.reason
+  ));
   return entries.map((entry) => results.get(entry.side));
 }
 
-function rankedResult(entry, visual, equal, fallbackUsed) {
-  const fallbackReason = fallbackUsed
-    ? 'Для обязательного ранга применены приоритетные показатели этой категории.'
-    : '';
+function visualRankResult(entry, status, cls, label, reason) {
   return {
     side: entry.side,
-    status: equal ? 'equal' : 'comparable',
+    status,
+    cls,
+    label,
+    summary: entry.evaluation?.summary || '',
+    reason
+  };
+}
+
+function neutralRankResult(entry, status, reason) {
+  return {
+    side: entry.side,
+    status,
+    cls: '',
+    label: '',
+    summary: entry.evaluation?.summary || '',
+    reason
+  };
+}
+
+function rankedResult(entry, visual, comparisonReason = '') {
+  return {
+    side: entry.side,
+    status: 'comparable',
     cls: visual.cls,
     label: visual.label,
     summary: entry.evaluation.summary,
-    reason: [entry.evaluation.reason, fallbackReason].filter(Boolean).join(' ')
+    reason: comparisonReason || entry.evaluation.reason
   };
-}
-
-function compareRankVectors(left, right) {
-  const length = Math.max(left.length, right.length);
-  for (let i = 0; i < length; i += 1) {
-    const leftValue = Number(left[i] ?? 0);
-    const rightValue = Number(right[i] ?? 0);
-    if (leftValue === rightValue) continue;
-    return leftValue > rightValue ? 1 : -1;
-  }
-  return 0;
-}
-
-function fallbackRankVector(entry) {
-  const attr = entry.attr || {};
-  const evaluation = entry.evaluation || {};
-  const metrics = evaluation.metrics || {};
-  const metric = (key, defaultValue = 0) => {
-    const value = Number(metrics[key]);
-    return Number.isFinite(value) ? value : defaultValue;
-  };
-  const legacy = Number(attr.score);
-  const legacyScore = attr.score !== null && attr.score !== undefined
-    && Number.isFinite(legacy) ? legacy : null;
-
-  if (attr.id === 'entry_conditions') {
-    const capitalKeys = [
-      'capital', 'capital_moscow', 'capital_regions', 'joint_capital', 'special_assets'
-    ];
-    const capitalValues = capitalKeys
-      .map((key) => Number(metrics[key]))
-      .filter((value) => Number.isFinite(value) && value > 0);
-    const spend = metric('monthly_spend', Number.MAX_SAFE_INTEGER);
-    const income = metric('monthly_income', Number.MAX_SAFE_INTEGER);
-    if (capitalValues.length) {
-      return [2, -Math.min(...capitalValues), -Math.max(...capitalValues), 0];
-    }
-    if ((Number.isFinite(spend) && spend < Number.MAX_SAFE_INTEGER)
-        || (Number.isFinite(income) && income < Number.MAX_SAFE_INTEGER)) {
-      return [3, -spend, -income, 0];
-    }
-    const monthlyFee = legacyScore !== null ? Math.abs(legacyScore) : Number.MAX_SAFE_INTEGER;
-    return [4, -monthlyFee, 0, 0];
-  }
-  if (attr.id === 'service_cost') {
-    return [metric('service_rank'), -metric('monthly_cost')];
-  }
-  if (attr.id === 'transfers_payments' || attr.id === 'cash_withdrawal') {
-    if (metrics.unlimited) return [1, 0, 0];
-    const periodRank = { year: 1, billing: 2, month: 3, operation: 3, day: 4 };
-    const limits = metrics.limits || [];
-    const strongest = limits.reduce((best, item) => {
-      if (!best || item.amount > best.amount) return item;
-      if (item.amount === best.amount
-          && (periodRank[item.period] || 0) > (periodRank[best.period] || 0)) return item;
-      return best;
-    }, null);
-    return strongest
-      ? [0, Number(strongest.amount) || 0, periodRank[strongest.period] || 0]
-      : [0, legacyScore ?? 0, 0];
-  }
-  if (attr.id === 'lounge_access') {
-    const annualVisits = metric('annual_cap', metric('visits_monthly') * 12);
-    return [metric('unlimited'), annualVisits, metric('visits_monthly'),
-      metric('access_programs'), metric('availability'), metric('guests')];
-  }
-  if (attr.id === 'cashback') {
-    const rateKnown = Number.isFinite(Number(metrics.max_rate)) ? 1 : 0;
-    return [rateKnown, metric('base_rate'), metric('max_rate'),
-      metric('unlimited_accrual'), metric('bonus_rub_value'),
-      metric('monthly_cap'), metric('monthly_bonus_cap'), metric('categories')];
-  }
-  if (attr.id === 'deposits') {
-    return [metric('rate', legacyScore ?? 0), -metric('minimum_amount'), metric('maximum_amount')];
-  }
-  if (attr.id === 'taxi' || attr.id === 'restaurants') {
-    return [metric('unlimited'), metric('annual_total'), metric('monthly_total'),
-      metric('per_use_limit'), metric('monthly_count'), metric('annual_count'),
-      metric('availability')];
-  }
-  if (attr.id === 'insurance') {
-    return [metric('coverage_rub', metric('coverage')),
-      metric('secondary_coverage_rub', metric('secondary_coverage')),
-      metric('trip_days'), metric('availability')];
-  }
-  if (attr.id === 'concierge') {
-    return [metric('service_rank', legacyScore ?? 0), metric('round_the_clock'),
-      metric('additional_cards')];
-  }
-  if (attr.id === 'supreme') {
-    return [metric('card_tier_rank'), metric('service_rank', legacyScore ?? 0),
-      metric('additional_cards')];
-  }
-  if (attr.id === 'other_benefits') {
-    const items = Array.isArray(attr.value) ? attr.value : [];
-    const always = items.filter((item) => item.availability === 'always_included').length;
-    const selectable = items.filter((item) => item.availability === 'selectable').length;
-    const confirmed = items.filter((item) => item.availability !== 'rule').length;
-    const benefitValues = Object.values(metrics.benefits || {});
-    const rubTotal = benefitValues.reduce(
-      (total, item) => total + (Number(item.rub_total) || 0), 0
-    );
-    return [confirmed, rubTotal, always, selectable];
-  }
-  return [legacyScore ?? 0];
 }
 
 function isMissingRankEntry(entry) {
@@ -3103,17 +3541,225 @@ function isMissingRankEntry(entry) {
 
 function compareEvaluations(left, right) {
   if (left.method !== right.method) {
-    return { order: null, reason: 'используются разные методы оценки.' };
+    return {
+      order: null, status: 'insufficient',
+      reason: 'Используются разные методы оценки.'
+    };
   }
   if (!deepEqual(left.scope || {}, right.scope || {})) {
-    return { order: null, reason: 'различается область действия условий.' };
+    return {
+      order: null, status: 'insufficient',
+      reason: 'Различается область действия условий.'
+    };
   }
+  if (left.method === 'composite') return compareComposite(left, right);
+  if (left.method === 'entry') return compareEntry(left, right);
+  if (left.method === 'cashback') return compareCashback(left, right);
+  if (left.method === 'compensation') return compareCompensation(left, right);
+  if (left.method === 'insurance') return compareInsurance(left, right);
   if (left.method === 'limit') return compareLimits(left, right);
   if (left.method === 'lounge') return compareLounges(left, right);
   if (left.method === 'benefit_set') return compareBenefitSets(left, right);
   if (left.method === 'ordinal') return compareOrdinal(left, right);
   if (left.method === 'dominance') return compareDominance(left, right);
-  return { order: null, reason: 'для условий нет доказуемого порядка.' };
+  return {
+    order: null, status: 'insufficient',
+    reason: 'Для условий нет доказуемого порядка.'
+  };
+}
+
+function compareCompensation(left, right) {
+  const priority = [
+    'monthly_total', 'monthly_count', 'per_use_limit', 'annual_total', 'availability'
+  ];
+  for (const key of priority) {
+    const leftValue = Number(left.metrics?.[key]);
+    const rightValue = Number(right.metrics?.[key]);
+    if (!Number.isFinite(leftValue) || !Number.isFinite(rightValue)
+        || leftValue === rightValue) continue;
+    return {
+      order: leftValue > rightValue ? 1 : -1,
+      status: 'comparable',
+      reason: key === 'monthly_total'
+        ? `Общая компенсация в месяц: ${formatRub(leftValue)} против ${formatRub(rightValue)}.`
+        : `Показатель ${key}: ${leftValue} против ${rightValue}; больше — лучше.`
+    };
+  }
+  const shared = priority.filter((key) => Number.isFinite(Number(left.metrics?.[key]))
+    && Number.isFinite(Number(right.metrics?.[key])));
+  return shared.length
+    ? { order: 0, status: 'equal', reason: 'Ключевые показатели компенсации равны.' }
+    : { order: null, status: 'insufficient', reason: 'Нет общего показателя компенсации.' };
+}
+
+function compareInsurance(left, right) {
+  const priority = [
+    'max_coverage_rub', 'owner_coverage_rub', 'territory_count',
+    'family_coverage_rub', 'trip_days', 'availability'
+  ];
+  for (const key of priority) {
+    const leftValue = Number(left.metrics?.[key]);
+    const rightValue = Number(right.metrics?.[key]);
+    if (!Number.isFinite(leftValue) || !Number.isFinite(rightValue)
+        || leftValue === rightValue) continue;
+    return {
+      order: leftValue > rightValue ? 1 : -1,
+      status: 'comparable',
+      reason: key.includes('coverage')
+        ? `Страховое покрытие в рублёвом эквиваленте: ${formatRub(leftValue)} `
+          + `против ${formatRub(rightValue)}.`
+        : `Показатель страхования ${key}: ${leftValue} против ${rightValue}.`
+    };
+  }
+  const shared = priority.filter((key) => Number.isFinite(Number(left.metrics?.[key]))
+    && Number.isFinite(Number(right.metrics?.[key])));
+  return shared.length
+    ? { order: 0, status: 'equal', reason: 'Ключевые показатели страхования равны.' }
+    : { order: null, status: 'insufficient', reason: 'Нет общего показателя страхования.' };
+}
+
+function compareCashback(left, right) {
+  const leftCap = Number(
+    left.metrics?.effective_monthly_cap
+      ?? left.metrics?.monthly_cap
+      ?? left.metrics?.monthly_bonus_cap
+  );
+  const rightCap = Number(
+    right.metrics?.effective_monthly_cap
+      ?? right.metrics?.monthly_cap
+      ?? right.metrics?.monthly_bonus_cap
+  );
+  if (Number.isFinite(leftCap) && Number.isFinite(rightCap)
+      && leftCap !== rightCap) {
+    return {
+      order: leftCap > rightCap ? 1 : -1,
+      status: 'comparable',
+      reason: `Месячный лимит кешбэка: ${formatRub(leftCap)} против `
+        + `${formatRub(rightCap)}; больший лимит выгоднее.`
+    };
+  }
+  const keys = ['max_rate', 'base_rate', 'categories'].filter(
+    (key) => Number.isFinite(Number(left.metrics?.[key]))
+      && Number.isFinite(Number(right.metrics?.[key]))
+  );
+  if (!keys.length) {
+    return Number.isFinite(leftCap) && Number.isFinite(rightCap)
+      ? { order: 0, status: 'equal', reason: 'Месячные лимиты кешбэка равны.' }
+      : {
+        order: null, status: 'insufficient',
+        reason: 'Нет общего подтверждённого показателя кешбэка.'
+      };
+  }
+  return compareDominance(
+    {
+      metrics: Object.fromEntries(keys.map((key) => [key, left.metrics[key]])),
+      directions: Object.fromEntries(keys.map((key) => [key, 'higher']))
+    },
+    {
+      metrics: Object.fromEntries(keys.map((key) => [key, right.metrics[key]])),
+      directions: Object.fromEntries(keys.map((key) => [key, 'higher']))
+    }
+  );
+}
+
+function compareEntry(left, right) {
+  const leftStandalone = Number(left.metrics?.standalone_capital_threshold);
+  const rightStandalone = Number(right.metrics?.standalone_capital_threshold);
+  if (Number.isFinite(leftStandalone) && Number.isFinite(rightStandalone)
+      && leftStandalone !== rightStandalone) {
+    return {
+      order: leftStandalone < rightStandalone ? 1 : -1,
+      status: 'comparable',
+      reason: `Самостоятельный порог активов: ${formatRub(leftStandalone)} против `
+        + `${formatRub(rightStandalone)}; меньший порог выгоднее.`
+    };
+  }
+  const normalizedKeys = [
+    'standalone_capital_threshold', 'mandatory_count', 'alternative_count'
+  ].filter((key) => Number.isFinite(Number(left.metrics?.[key]))
+    && Number.isFinite(Number(right.metrics?.[key])));
+  if (!normalizedKeys.length) {
+    return {
+      order: null, status: 'insufficient',
+      reason: 'Не найден общий сценарий входа для корректного сравнения.'
+    };
+  }
+  return compareDominance(
+    {
+      metrics: Object.fromEntries(normalizedKeys.map(
+        (key) => [key, left.metrics[key]]
+      )),
+      directions: Object.fromEntries(normalizedKeys.map(
+        (key) => [key, left.directions[key]]
+      ))
+    },
+    {
+      metrics: Object.fromEntries(normalizedKeys.map(
+        (key) => [key, right.metrics[key]]
+      )),
+      directions: Object.fromEntries(normalizedKeys.map(
+        (key) => [key, right.directions[key]]
+      ))
+    }
+  );
+}
+
+function compareComposite(left, right) {
+  const leftParts = left.metrics?.components || {};
+  const rightParts = right.metrics?.components || {};
+  const componentIds = [...new Set([
+    ...Object.keys(leftParts), ...Object.keys(rightParts)
+  ])].sort();
+  let leftWins = 0;
+  let rightWins = 0;
+  let equal = 0;
+  let skipped = 0;
+  const decisions = [];
+  for (const componentId of componentIds) {
+    const leftPart = leftParts[componentId] || { present: false };
+    const rightPart = rightParts[componentId] || { present: false };
+    const label = leftPart.label || rightPart.label || componentId;
+    if (Boolean(leftPart.present) !== Boolean(rightPart.present)) {
+      if (leftPart.present) leftWins += 1;
+      else rightWins += 1;
+      decisions.push(`${label}: условие подтверждено только у одного банка`);
+      continue;
+    }
+    if (!leftPart.present) continue;
+    const leftEvaluation = leftPart.evaluation || {};
+    const rightEvaluation = rightPart.evaluation || {};
+    if (leftEvaluation.status !== 'comparable'
+        || rightEvaluation.status !== 'comparable') {
+      skipped += 1;
+      continue;
+    }
+    const comparison = compareEvaluations(leftEvaluation, rightEvaluation);
+    if (comparison.order === null) {
+      skipped += 1;
+    } else if (comparison.order > 0) {
+      leftWins += 1;
+      decisions.push(`${label}: первый банк сильнее`);
+    } else if (comparison.order < 0) {
+      rightWins += 1;
+      decisions.push(`${label}: второй банк сильнее`);
+    } else {
+      equal += 1;
+    }
+  }
+  const reason = `По сопоставимым подпунктам: ${leftWins}–${rightWins}; `
+    + `равно: ${equal}; без числового ранга: ${skipped}.`
+    + (decisions.length ? ` ${decisions.join('; ')}.` : '');
+  if (leftWins === rightWins) {
+    if (!leftWins && !equal) {
+      return { order: null, status: 'insufficient', reason };
+    }
+    return {
+      order: leftWins ? null : 0,
+      status: leftWins ? 'ambiguous' : 'equal',
+      reason
+    };
+  }
+  return { order: leftWins > rightWins ? 1 : -1, status: 'comparable', reason };
 }
 
 function compareLounges(left, right) {
@@ -3126,46 +3772,19 @@ function compareLounges(left, right) {
     const leftVisits = Number(left.metrics.visits_monthly);
     const rightVisits = Number(right.metrics.visits_monthly);
     if (!Number.isFinite(leftVisits) || !Number.isFinite(rightVisits)) {
-      return { order: null, reason: 'не у всех вариантов подтверждено количество посещений.' };
+      return {
+        order: null, status: 'insufficient',
+        reason: 'Не у всех вариантов подтверждено количество посещений.'
+      };
     }
     visitOrder = leftVisits === rightVisits ? 0 : leftVisits > rightVisits ? 1 : -1;
   }
   if (visitOrder) return { order: visitOrder, reason: '' };
-
-  const leftPrograms = Number(left.metrics.access_programs);
-  const rightPrograms = Number(right.metrics.access_programs);
-  if (Number.isFinite(leftPrograms) && Number.isFinite(rightPrograms)
-      && leftPrograms !== rightPrograms) {
-    return { order: leftPrograms > rightPrograms ? 1 : -1, reason: '' };
-  }
-
-  const omit = new Set([
-    'unlimited', 'visits_monthly', 'annual_cap', 'access_programs'
-  ]);
-  const leftOther = Object.fromEntries(
-    Object.entries(left.metrics).filter(
-      ([key]) => !omit.has(key)
-        && Object.prototype.hasOwnProperty.call(right.metrics, key)
-    )
-  );
-  const rightOther = Object.fromEntries(
-    Object.entries(right.metrics).filter(
-      ([key]) => !omit.has(key)
-        && Object.prototype.hasOwnProperty.call(left.metrics, key)
-    )
-  );
-  if (!Object.keys(leftOther).length) return { order: 0, reason: '' };
-  const directions = Object.fromEntries(
-    Object.keys(leftOther).map((key) => [key, 'higher'])
-  );
-  const other = compareDominance(
-    { metrics: leftOther, directions },
-    { metrics: rightOther, directions: Object.fromEntries(
-      Object.keys(rightOther).map((key) => [key, 'higher'])
-    ) }
-  );
-  if (other.order === null) return other;
-  return { order: other.order, reason: other.reason || '' };
+  return {
+    order: 0,
+    reason: 'Максимальное подтверждённое количество посещений одинаково; '
+      + 'системы доступа и общий баланс преференций показаны справочно.'
+  };
 }
 
 function compareOrdinal(left, right) {
@@ -3180,18 +3799,26 @@ function compareOrdinal(left, right) {
 function compareDominance(left, right) {
   const leftKeys = Object.keys(left.metrics || {}).sort();
   const rightKeys = Object.keys(right.metrics || {}).sort();
-  if (!deepEqual(leftKeys, rightKeys)) {
-    return { order: null, reason: 'набор существенных параметров различается.' };
+  const commonKeys = leftKeys.filter((key) => rightKeys.includes(key));
+  const hasMissingMetrics = !deepEqual(leftKeys, rightKeys);
+  if (!commonKeys.length) {
+    return {
+      order: null, status: 'insufficient',
+      reason: 'Нет общих подтверждённых показателей.'
+    };
   }
   let leftBetter = false;
   let rightBetter = false;
-  for (const key of leftKeys) {
+  for (const key of commonKeys) {
     const leftValue = Number(left.metrics[key]);
     const rightValue = Number(right.metrics[key]);
     const direction = left.directions[key];
     if (!Number.isFinite(leftValue) || !Number.isFinite(rightValue)
         || direction !== right.directions[key]) {
-      return { order: null, reason: 'метрики нельзя привести к общей шкале.' };
+      return {
+        order: null, status: 'insufficient',
+        reason: 'Метрики нельзя привести к общей шкале.'
+      };
     }
     if (leftValue === rightValue) continue;
     const leftWins = direction === 'lower'
@@ -3201,7 +3828,20 @@ function compareDominance(left, right) {
     else rightBetter = true;
   }
   if (leftBetter && rightBetter) {
-    return { order: null, reason: 'каждый вариант лучше по разным параметрам.' };
+    return {
+      order: null, status: 'ambiguous',
+      reason: 'Каждый вариант лучше по разным подтверждённым параметрам.'
+    };
+  }
+  if (hasMissingMetrics) {
+    return {
+      order: null,
+      status: leftBetter || rightBetter ? 'ambiguous' : 'insufficient',
+      reason: leftBetter || rightBetter
+        ? 'По общим показателям есть преимущество, но часть ключевых данных '
+          + 'подтверждена только для одного варианта.'
+        : 'Общие показатели равны, но часть ключевых данных отсутствует.'
+    };
   }
   if (leftBetter) return { order: 1, reason: '' };
   if (rightBetter) return { order: -1, reason: '' };
@@ -3241,17 +3881,10 @@ function compareSingleLimit(left, right) {
     if (left.amount === right.amount) return { order: 0, reason: '' };
     return { order: left.amount > right.amount ? 1 : -1, reason: '' };
   }
-  if (left.period === 'day' && right.period === 'month') {
-    return left.amount >= right.amount
-      ? { order: 1, reason: '' }
-      : { order: null, reason: 'суточный лимит меньше месячного, поэтому преимущество зависит от сценария.' };
-  }
-  if (left.period === 'month' && right.period === 'day') {
-    return right.amount >= left.amount
-      ? { order: -1, reason: '' }
-      : { order: null, reason: 'месячный лимит больше суточного, поэтому преимущество зависит от сценария.' };
-  }
-  return { order: null, reason: 'лимиты указаны за разные несопоставимые периоды.' };
+  return {
+    order: null, status: 'insufficient',
+    reason: 'Лимиты указаны за разные периоды и не сравниваются между собой.'
+  };
 }
 
 function compareBenefitSets(left, right) {

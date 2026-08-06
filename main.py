@@ -22,7 +22,12 @@ from datetime import datetime
 from pathlib import Path
 
 from scanner import sources
-from scanner.benefits import other_benefits_text
+from scanner.benefits import (
+    health_option_field,
+    other_benefits_text,
+    pets_option_field,
+    sport_beauty_field,
+)
 from scanner.contracts import validate_scan_contracts
 from scanner.curated import curated_for
 from scanner.diff import (
@@ -125,6 +130,15 @@ def scan_banks(banks: list, fetcher: Fetcher, scan_dt: str) -> tuple:
             )
             merged = apply_publication_gate(merged)
             if bank["type"] != "lifestyle" and "other_benefits" in merged:
+                health = health_option_field(merged)
+                if health is not None:
+                    merged["health_option"] = health
+                pets = pets_option_field(merged)
+                if pets is not None:
+                    merged["pets_option"] = pets
+                sport_beauty = sport_beauty_field(merged)
+                if sport_beauty is not None:
+                    merged["sport_beauty_option"] = sport_beauty
                 derived_value = other_benefits_text(merged)
                 component_ids = (
                     "always_included_options", "selectable_options",
@@ -398,6 +412,13 @@ def build_premium_changes_only():
     return stats
 
 
+def build_news_landings_and_publish() -> dict:
+    """Rebuild retained news, embed it, and publish the public entry page."""
+    premium_stats = build_premium_changes_only()
+    sber_vs_stats = build_sber_vs_only()
+    return {"premium_changes": premium_stats, "sber_vs": sber_vs_stats}
+
+
 def sync_premium_news_only():
     from scanner.editorial_news import EditorialNewsError, sync_editorial_news
 
@@ -443,8 +464,9 @@ def scan_premium_news_only():
         len(stats["sources_ok"]),
         len(stats["sources_failed"]),
     )
-    build_premium_changes_only()
-    build_sber_vs_only()
+    publication = build_news_landings_and_publish()
+    if not publication["sber_vs"].get("published"):
+        raise SystemExit(2)
     return stats
 
 
@@ -505,8 +527,8 @@ def build_full_scan_outputs():
     """Artifacts that must accompany a full market scan."""
     log.info("")
     log.info("═══ Сборка HTML-витрин полного скана ═══")
-    sber_vs_stats = build_sber_vs_only()
     premium_stats = build_premium_changes_only()
+    sber_vs_stats = build_sber_vs_only()
     log.info("")
     log.info("═══ Артефакты полного скана ═══")
     log.info("Excel: %s", OUTPUT_PATH)
@@ -554,9 +576,14 @@ def main():
         if not stats.get("published"):
             raise SystemExit(2)
     elif args.build_premium_changes:
-        build_premium_changes_only()
+        stats = build_news_landings_and_publish()
+        if not stats["sber_vs"].get("published"):
+            raise SystemExit(2)
     elif args.sync_premium_news:
         sync_premium_news_only()
+        stats = build_news_landings_and_publish()
+        if not stats["sber_vs"].get("published"):
+            raise SystemExit(2)
     elif args.scan_news:
         scan_premium_news_only()
     elif args.build_premium_reviews:
