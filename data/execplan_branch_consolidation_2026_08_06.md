@@ -13,8 +13,10 @@ The repository will end with `main` as its only active working branch, while eve
 - [x] (2026-08-06 16:25+03:00) Pushed permanent tag `pre-main-consolidation-2026-08-06` resolving to `6291073`.
 - [x] (2026-08-06 16:27+03:00) Fetched `origin/main` at `1a8d26c` and audited scratch files versus service data.
 - [x] (2026-08-06 16:33+03:00) Removed only `tmp/vtb_prime` and `tmpt43w8f1a`, added ignore rules, and validated retained data and outputs.
-- [ ] Commit and push cleanup, merge `develop` into `main` through a pull request, and wait for Actions.
-- [ ] Verify the public landing and retained news, then delete `develop` locally and remotely.
+- [x] (2026-08-06 16:47+03:00) Pushed cleanup commits, merged current `origin/main` into `develop` without conflicts, and opened pull request #8.
+- [x] (2026-08-06 16:47+03:00) Merged pull request #8 into `main` at `cea83e0`; Actions run `31107588381` completed successfully and updated `bank_cite` at `e802714`.
+- [x] (2026-08-06 17:49+03:00) Verified successful Pages deployment run `31112336917` and a byte-identical public/raw landing with 87 publications.
+- [x] (2026-08-06 17:57+03:00) Fast-forwarded local `main`, confirmed it contains `develop`, and deleted `develop` locally and from `origin`.
 
 ## Surprises & Discoveries
 
@@ -26,6 +28,8 @@ The repository will end with `main` as its only active working branch, while eve
   Evidence: `du -sh` reports 74 MiB and 3.9 MiB respectively; focused `rg` over runtime directories returns no references.
 - Observation: The full test discovery is not hermetic and stalled in a live Google Sheets TLS handshake after exposing one previously known assertion failure.
   Evidence: interruption stack ended in `scanner/editorial_news.py` via `requests.get(..., timeout=30)` from `test_balanced_parentheses_all_banks`; the isolated 56-test retention, publisher, and alignment suite passes.
+- Observation: The first Pages deployment timed out while the site remained available, but a fresh official Pages build completed successfully.
+  Evidence: run `31108666219` timed out in deployment; replacement run `31112336917` completed all jobs, including deployment, in 9m54s.
 
 ## Decision Log
 
@@ -41,7 +45,9 @@ The repository will end with `main` as its only active working branch, while eve
 
 ## Outcomes & Retrospective
 
-Implementation is in progress.
+The repository now uses `main` as its only active branch on `origin` and in the local worktree. Pull request #8 preserved both histories and merged without conflicts. The pre-consolidation tree remains recoverable from the immutable remote tag `pre-main-consolidation-2026-08-06`; the separate `legacy` remote was intentionally left untouched as an additional archive.
+
+The production workflow completed successfully and committed the generated landing to `bank_cite`. The public URL and the raw `bank_cite/main/index.html` both have SHA-256 `31e4adcbedc80ed591a3709376897eda548c1b1a7aade33e386c6362e6a2223e`, build marker `20260806T140026857905`, and 87 publications. No service data or user-facing output was removed during branch cleanup.
 
 ## Context and Orientation
 
@@ -84,3 +90,5 @@ Pre-commit validation:
 No runtime interface is intentionally changed by branch consolidation. GitHub CLI manages the pull request and checks; ordinary `git` manages commits, tags, branch updates, and deletion. GitHub Actions remains responsible for the scheduled full scan and copying the generated landing into `bank_cite`.
 
 Revision note (2026-08-06): Created before the first branch or file mutation so the full consolidation remains restartable and auditable.
+
+Revision note (2026-08-06): Completed after the merged workflow, replacement Pages deployment, public fingerprint verification, and deletion of the fully merged `develop` branch.
